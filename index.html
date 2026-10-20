@@ -161,7 +161,6 @@
 
       <div id="bearStage" class="relative z-20 flex-1 w-full h-full overflow-hidden"></div>
 
-      <!-- 首頁底部按鈕 (往上一點，右邊按鈕點擊時複製指定網址並跑出小熊) -->
       <div class="relative z-30 pb-20 px-6 flex items-center justify-center gap-3.5">
         <button onclick="switchView('list')" class="glass-pill glass-pill-btn px-6 py-3 rounded-full text-sm font-bold tracking-wide flex items-center gap-2 transition">
           <span>📋 活動列表</span>
@@ -516,7 +515,6 @@
               </div>
             </div>
 
-            <!-- 完整活動時間：選取開始時間與結束時間 -->
             <div class="grid grid-cols-2 gap-3 bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100">
               <div>
                 <label class="font-bold text-indigo-900 block mb-1">活動開始時間 *</label>
@@ -640,11 +638,11 @@
       document.getElementById('cloudLoadingOverlay').classList.toggle('hidden', !show);
     }
 
-    const STORAGE_KEY_EVENTS = 'picnic_platform_events_v8';
-    const STORAGE_KEY_REGS   = 'picnic_platform_regs_v8';
-    const STORAGE_KEY_HOME_EVENT = 'picnic_platform_home_event_v8';
-    const STORAGE_KEY_HOME_BG    = 'picnic_platform_home_bg_v8';
-    const STORAGE_KEY_FELLOWSHIP_BANNER = 'picnic_platform_fellowship_banner_v8';
+    const STORAGE_KEY_EVENTS = 'picnic_platform_events_v9';
+    const STORAGE_KEY_REGS   = 'picnic_platform_regs_v9';
+    const STORAGE_KEY_HOME_EVENT = 'picnic_platform_home_event_v9';
+    const STORAGE_KEY_HOME_BG    = 'picnic_platform_home_bg_v9';
+    const STORAGE_KEY_FELLOWSHIP_BANNER = 'picnic_platform_fellowship_banner_v9';
 
     const macaronThemes = [
       { cardBg: 'bg-[#FFF0F5]', cardBorder: 'border-[#FBCFE8]', badgeBg: 'bg-[#F472B6]', badgeText: 'text-white', softBadgeBg: 'bg-[#FCE7F3]', softBadgeText: 'text-[#9D174D]', titleText: 'text-[#831843]', subText: 'text-[#9D174D]/75', arrowText: 'text-[#F472B6]' },
@@ -729,7 +727,7 @@
       try {
         const [cfgRes, evtRes, regRes] = await Promise.all([
           supabaseClient.from('app_config').select('*').eq('id', 'main').maybeSingle(),
-          supabaseClient.from('events').select('*').order('created_at', { ascending: false }),
+          supabaseClient.from('events').select('*').order('time_start', { ascending: true }),
           supabaseClient.from('registrations').select('*').order('created_at', { ascending: true })
         ]);
 
@@ -954,7 +952,6 @@
       });
     }
 
-    // 點擊「揪好友一起來」：跑出小熊 + 自動複製 https://reurl.cc/YmrAka
     function shareLinkAndSpawnBear() {
       const targetUrl = 'https://reurl.cc/YmrAka';
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1067,7 +1064,7 @@
       showToast('已同步更新團契主視覺大圖！');
     }
 
-    // 渲染活動列表：時間較近的排在上面 (由早到晚升序排列)
+    // 活動列表排序：將快要發生的活動（時間較早/由近到遠）排在最上面
     function renderEventList() {
       document.getElementById('fellowshipBannerImg').src = fellowshipBanner;
 
@@ -1076,7 +1073,7 @@
       activeContainer.innerHTML = '';
       endedContainer.innerHTML = '';
 
-      // 依照時間排序 (時間較近的放上面)
+      // 依照時間排序：由近到遠（快要發生的在最上面）
       const sortedEvents = [...events].sort((a, b) => {
         const timeA = a.timeStart || a.dateShort || '';
         const timeB = b.timeStart || b.dateShort || '';
@@ -1178,7 +1175,6 @@
       document.getElementById('detailBannerImg').src = ev.banner;
       document.getElementById('detailTitle').innerText = ev.title;
       
-      // 顯示開始到結束時間區間
       const startStr = ev.timeStart ? ev.timeStart.replace('T', ' ') : '';
       const endStr = ev.timeEnd ? ev.timeEnd.replace('T', ' ').slice(11) : '';
       document.getElementById('detailTime').innerText = endStr ? `${startStr} ~ ${endStr}` : startStr;
