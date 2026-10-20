@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>活動報名平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- 引入 Supabase 官方 SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea { user-select: text; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 6px 20px -4px rgba(20, 45, 20, 0.18), inset 0 1.5px 0 rgba(255, 255, 255, 1);
+      color: #2c3e2e;
+    }
+    .glass-pill-btn:active {
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    @keyframes gummySquish {
+      0%   { transform: scale(1, 1); }
+      25%  { transform: scale(1.32, 0.72); }
+      50%  { transform: scale(0.85, 1.22) translateY(-10px); }
+      75%  { transform: scale(1.08, 0.94); }
+      100% { transform: scale(1, 1); }
+    }
+    .squish-anim { animation: gummySquish 0.52s cubic-bezier(0.25, 1, 0.5, 1); }
+
+    @keyframes popBubble {
+      0%   { opacity: 0; transform: translate(-50%, 4px) scale(0.7); }
+      20%  { opacity: 1; transform: translate(-50%, -6px) scale(1.05); }
+      80%  { opacity: 1; transform: translate(-50%, -10px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -16px) scale(0.9); }
+    }
+    .speech-bubble { animation: popBubble 1.35s ease-out forwards; }
+
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .shake { animation: shakeError 0.35s ease-in-out; }
+
+    .cute-form-card {
+      background: #ffffff;
+      border: 2px solid #f2ece4;
+      box-shadow: 0 6px 0 #ebe3d8;
+      transition: all 0.2s ease;
+    }
+    .cute-form-card:focus-within {
+      border-color: #f9a8d4;
+      box-shadow: 0 6px 0 #fbcfe8;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body class="bg-stone-900 flex justify-center items-center min-h-screen p-0 sm:p-4 overflow-hidden">
+
+  <!-- 手機端容器 -->
+  <div class="relative w-full max-w-[430px] h-[100dvh] sm:h-[860px] bg-white sm:rounded-[44px] overflow-hidden shadow-2xl sm:border-[8px] sm:border-stone-800 flex flex-col">
+
+    <!-- 雲端同步讀取遮罩 -->
+    <div id="cloudLoadingOverlay" class="hidden absolute inset-0 z-50 bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+      <div class="w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+      <span class="text-xs font-black text-stone-600">雲端同步中...</span>
+    </div>
+
+    <!-- ==================== 1. 首頁 (小熊野餐互動頁) ==================== -->
+    <section id="viewHome" class="relative w-full h-full flex flex-col overflow-hidden select-none">
+      <div class="absolute inset-0 z-0">
+        <svg id="defaultHomeBgSvg" viewBox="0 0 430 860" preserveAspectRatio="xMidYMid slice" class="w-full h-full">
+          <defs>
+            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#c3d9ef"/>
+              <stop offset="55%" stop-color="#ddeaf6"/>
+            </linearGradient>
+            <linearGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#a7cf5d"/>
+              <stop offset="45%" stop-color="#91be49"/>
+              <stop offset="100%" stop-color="#76a338"/>
+            </linearGradient>
+            <pattern id="matCheck" width="60" height="60" patternUnits="userSpaceOnUse">
+              <rect width="60" height="60" fill="#f7f9fc"/>
+              <rect width="30" height="30" fill="#9bc0e6"/>
+              <rect x="30" y="30" width="30" height="30" fill="#9bc0e6"/>
+            </pattern>
+          </defs>
+          <rect width="430" height="500" fill="url(#skyGrad)"/>
+          <path d="M-20,120 Q40,90 80,140 Q130,140 150,190 Q190,210 185,260 L-20,260 Z" fill="#e9f2fa"/>
+          <path d="M335,0 L350,240 L395,240 L405,0 Z" fill="#6b5842"/>
+          <path d="M350,90 L300,15 L318,0 L360,70 Z" fill="#6b5842"/>
+          <path d="M250,0 Q290,90 430,80 L430,0 Z" fill="#789c44"/>
+          <circle cx="330" cy="270" r="115" fill="#628932"/>
+          <circle cx="400" cy="240" r="95" fill="#547927"/>
+          <circle cx="215" cy="295" r="82" fill="#70983b"/>
+          <circle cx="35" cy="275" r="110" fill="#8fb846"/>
+          <circle cx="-10" cy="340" r="75" fill="#577d2b"/>
+          <path d="M0,385 Q220,355 430,365 L430,860 L0,860 Z" fill="url(#grassGrad)"/>
+          <g transform="translate(215, 560) scale(1, 0.52) rotate(36)">
+            <rect x="-155" y="-145" width="310" height="290" rx="6" fill="#5a8029" opacity="0.35" transform="translate(6, 10)"/>
+            <rect x="-155" y="-145" width="310" height="290" rx="4" fill="url(#matCheck)" stroke="#88afd8" stroke-width="3"/>
+          </g>
+          <ellipse cx="165" cy="525" rx="35" ry="14" fill="#ecd599" opacity="0.75"/>
+          <g transform="translate(65, 520)">
+            <polygon points="0,20 55,36 96,15 42,0" fill="#d9ab76" stroke="#8c633b" stroke-width="1.5"/>
+            <polygon points="0,20 0,32 55,48 55,36" fill="#f3e1c0" stroke="#8c633b" stroke-width="1.5"/>
+            <polygon points="55,36 55,48 96,27 96,15" fill="#e6cfa5" stroke="#8c633b" stroke-width="1.5"/>
+          </g>
+          <g transform="translate(118, 480)">
+            <polygon points="2,0 22,0 19,28 5,28" fill="#bfe0f7" stroke="#6d9dc2" stroke-width="1.2"/>
+            <ellipse cx="12" cy="0" rx="10" ry="3" fill="#e1f2fe" stroke="#6d9dc2" stroke-width="1.2"/>
+          </g>
+          <g transform="translate(152, 495)">
+            <path d="M0,4 L30,4 L26,22 Q15,26 4,22 Z" fill="#cf6a5b" stroke="#8a3d31" stroke-width="1.2"/>
+            <ellipse cx="15" cy="4" rx="15" ry="4.5" fill="#e38876" stroke="#8a3d31" stroke-width="1.2"/>
+          </g>
+          <g transform="translate(270, 505)">
+            <circle cx="26" cy="20" r="16" fill="#df5b49" stroke="#8c3225" stroke-width="1.2"/>
+            <circle cx="72" cy="23" r="15" fill="#d13b30" stroke="#7d1f18" stroke-width="1.2"/>
+            <ellipse cx="52" cy="24" rx="15" ry="18" fill="#f59c36" stroke="#9c5b11" stroke-width="1.2"/>
+            <polygon points="4,26 92,26 84,65 12,65" fill="#deb88b" stroke="#9c754d" stroke-width="1.5"/>
+            <line x1="8" y1="38" x2="88" y2="38" stroke="#b58d63" stroke-width="2" stroke-dasharray="8,5"/>
+            <line x1="10" y1="50" x2="86" y2="50" stroke="#b58d63" stroke-width="2" stroke-dasharray="8,5"/>
+            <path d="M22,26 Q48,-22 74,26" fill="none" stroke="#cfa779" stroke-width="7" stroke-linecap="round"/>
+            <path d="M22,26 Q48,-22 74,26" fill="none" stroke="#9c754d" stroke-width="1.3"/>
+          </g>
+          <g transform="translate(105, 738)">
+            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
+          </g>
+          <g transform="translate(138, 792) scale(0.75)">
+            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
+          </g>
+          <g transform="translate(345, 785) scale(0.95)">
+            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
+          </g>
+          <g transform="translate(398, 825) scale(0.9)">
+            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
+            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
+          </g>
+        </svg>
+        <img id="customHomeBgImg" class="hidden w-full h-full object-cover" alt="首頁自訂底圖" />
+      </div>
+
+      <!-- 頂部狀態列 -->
+      <div class="relative z-30 pt-5 px-5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <label id="adminHomeBgBtn" class="hidden glass-pill glass-pill-btn px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer flex items-center gap-1.5 transition">
+            <span>🖼️ 換底圖</span>
+            <input type="file" accept="image/*" class="hidden" onchange="handleHomeBgUpload(event)" />
+          </label>
+          <button id="adminHomeConfigBtn" onclick="openHomeConfigModal()" class="hidden glass-pill glass-pill-btn px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition">
+            <span>🎯 綁定活動</span>
+          </button>
+        </div>
+
+        <div class="glass-pill px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold tracking-wide">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>已報名 <strong id="homeRegCountNum" class="text-sm font-black text-emerald-800">0</strong> 人</span>
+        </div>
+      </div>
+
+      <!-- 自由漫步的小熊軟糖互動舞台 -->
+      <div id="bearStage" class="relative z-20 flex-1 w-full h-full overflow-hidden"></div>
+
+      <!-- 首頁底部按鈕 -->
+      <div class="relative z-30 pb-12 px-6 flex items-center justify-center gap-3.5">
+        <button onclick="switchView('list')" class="glass-pill glass-pill-btn px-6 py-3 rounded-full text-sm font-bold tracking-wide flex items-center gap-2 transition">
+          <span>📋 活動列表</span>
+        </button>
+        <button onclick="spawnOneBearFromEdge()" class="glass-pill glass-pill-btn px-6 py-3 rounded-full text-sm font-bold tracking-wide flex items-center gap-2 transition">
+          <span>🧸 揪好友一起來</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 2. 活動列表頁 ==================== -->
+    <section id="viewList" class="hidden relative w-full h-full bg-[#fffaf5] flex flex-col overflow-hidden">
+      <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md px-4 py-3.5 border-b border-stone-200/70 flex items-center justify-between">
+        <button onclick="switchView('home')" class="p-1.5 rounded-full hover:bg-stone-100 active:scale-95 text-stone-700 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="text-base font-black text-stone-800 tracking-wide">活動列表</h1>
+        <button onclick="handleAdminTrigger('list')" id="listAdminBtn" class="p-1.5 rounded-full hover:bg-stone-100 active:scale-95 text-stone-500 transition" title="管理者設定">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+      </header>
+
+      <div id="listAdminBar" class="hidden bg-amber-50/95 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+          <span>🔓 管理員模式</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openEventEditor(null)" class="px-3 py-1.5 bg-stone-900 text-white text-xs font-bold rounded-full shadow-sm active:scale-95 transition">
+            ＋ 新增活動
+          </button>
+          <button onclick="logoutAdmin()" class="px-2.5 py-1.5 bg-white border border-stone-300 text-stone-600 text-xs font-medium rounded-full active:scale-95">
+            鎖定
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto no-scrollbar pb-8">
+        <!-- 整個團契的主視覺大圖 -->
+        <div class="px-4 pt-4 pb-1">
+          <div class="relative w-full aspect-video rounded-3xl overflow-hidden bg-stone-200 shadow-md border-4 border-white">
+            <img id="fellowshipBannerImg" src="" alt="團契主視覺" class="w-full h-full object-cover" />
+            <label id="adminFellowshipBannerBtn" class="hidden absolute bottom-3 right-3 bg-black/75 hover:bg-black/90 backdrop-blur-md text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-lg cursor-pointer flex items-center gap-1.5 active:scale-95 transition">
+              <span>📷 更換團契主視覺</span>
+              <input type="file" accept="image/*" class="hidden" onchange="handleFellowshipBannerUpload(event)" />
+            </label>
+          </div>
+        </div>
+
+        <div class="p-4 space-y-3.5">
+          <div id="activeEventsContainer" class="space-y-3"></div>
+          <div class="pt-2">
+            <button id="toggleEndedBtn" onclick="toggleEndedEvents()" class="w-full py-2.5 px-4 bg-stone-200/60 hover:bg-stone-200/90 text-stone-600 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 transition">
+              <span id="toggleEndedText">顯示已結束的活動</span>
+              <svg id="toggleEndedIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7 7"/></svg>
+            </button>
+            <div id="endedEventsContainer" class="hidden mt-3 space-y-2.5 opacity-80"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. 個別活動詳情頁 ==================== -->
+    <section id="viewDetail" class="hidden relative w-full h-full bg-[#fffaf5] flex flex-col overflow-hidden">
+      <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md px-3.5 py-3 border-b border-stone-100 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <button onclick="switchView('list')" class="p-1.5 rounded-full hover:bg-stone-100 active:scale-95 text-stone-700 transition" title="返回列表">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button onclick="handleAdminTrigger('detail')" id="detailAdminIconBtn" class="p-1.5 rounded-full text-stone-300 hover:text-stone-500 active:scale-95 transition" title="管理者驗證">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </button>
+        </div>
+
+        <h1 class="text-sm font-black text-stone-700 tracking-wide">活動介紹</h1>
+
+        <div id="detailAdminActions" class="hidden flex items-center gap-1.5">
+          <button onclick="openEventEditor(currentEventId)" class="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-full transition">
+            編輯
+          </button>
+          <button onclick="openAttendeeModal()" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full transition">
+            名單(<span id="detailAdminCount">0</span>)
+          </button>
+        </div>
+        <div id="detailAdminPlaceholder" class="w-8"></div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto no-scrollbar p-4 pb-32 space-y-4">
+        <div class="cute-form-card p-2 rounded-[28px] overflow-hidden">
+          <div class="relative w-full aspect-video rounded-[20px] bg-stone-900 overflow-hidden flex items-center justify-center">
+            <img id="detailBannerImg" src="" alt="活動主視覺" class="w-full h-full object-contain" />
+          </div>
+        </div>
+
+        <div class="cute-form-card p-4 rounded-3xl space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span id="detailStatusBadge" class="px-3.5 py-1 rounded-full text-xs font-black">開放報名</span>
+          </div>
+          <h2 id="detailTitle" class="text-2xl font-black text-stone-900 leading-snug"></h2>
+        </div>
+
+        <div id="detailInfoBox" class="rounded-3xl p-4 space-y-3.5 border-2 text-sm shadow-sm transition-colors">
+          <div class="flex items-start gap-3">
+            <span class="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center shadow-sm shrink-0 text-sm">📅</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-stone-800 font-black" id="detailTime"></div>
+              <div class="text-xs text-rose-600 font-black mt-0.5">報名截止｜<span id="detailDeadline"></span></div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center shadow-sm shrink-0 text-sm">📍</span>
+            <div class="text-stone-800 font-black" id="detailLocation"></div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center shadow-sm shrink-0 text-sm">🪙</span>
+            <div class="text-stone-800 font-black" id="detailFeeNote">現場收費</div>
+          </div>
+        </div>
+
+        <div class="cute-form-card p-5 rounded-3xl space-y-3 relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span id="detailDescBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black">
+              <span>✨</span>
+              <span>活動內容介紹</span>
+            </span>
+            <span class="text-stone-300 text-lg font-black select-none">❝</span>
+          </div>
+          <div id="detailDesc" class="text-stone-700 text-sm font-bold leading-relaxed whitespace-pre-line pt-1"></div>
+        </div>
+      </div>
+
+      <div class="absolute bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200/70 px-5 py-3.5 flex items-center justify-between shadow-lg">
+        <div>
+          <div class="text-xs font-bold text-stone-400">票價資訊</div>
+          <div id="detailPriceDisplay" class="text-xl font-black text-stone-900 mt-0.5">NT$ 100</div>
+        </div>
+        <button id="detailRegBtn" onclick="openRegView()" class="px-8 py-3.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 disabled:from-stone-300 disabled:to-stone-300 text-white font-black text-sm rounded-full shadow-lg shadow-purple-500/25 transition transform active:scale-95">
+          立即報名
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 4. 填寫報名資料頁 ==================== -->
+    <section id="viewReg" class="hidden relative w-full h-full bg-[#fffaf5] flex flex-col overflow-hidden">
+      <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md px-4 py-3.5 border-b border-stone-100 flex items-center justify-between">
+        <button onclick="switchView('detail')" class="p-1.5 rounded-full hover:bg-stone-100 text-stone-700 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="text-base font-black text-stone-800 tracking-wide">填寫報名資料</h1>
+        <div class="w-8"></div>
+      </header>
+
+      <form id="regForm" onsubmit="submitRegistration(event)" class="flex-1 overflow-y-auto no-scrollbar p-5 space-y-4">
+        <div id="regEventHeaderCard" class="p-4 rounded-3xl border-2 flex items-center gap-3.5 shadow-sm">
+          <img id="regEventThumb" src="" alt="" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm shrink-0 bg-white" />
+          <div class="min-w-0 flex-1">
+            <span class="inline-block px-2 py-0.5 text-[10px] font-black rounded-full bg-white/80 text-stone-700 mb-1">報名活動</span>
+            <h2 id="regEventTitle" class="text-sm font-black text-stone-900 truncate"></h2>
+            <p id="regEventDate" class="text-xs font-bold text-stone-600 truncate mt-0.5"></p>
+          </div>
+        </div>
+
+        <div class="cute-form-card p-4 rounded-3xl space-y-2">
+          <label class="flex items-center justify-between">
+            <span class="text-sm font-black text-stone-800">姓名</span>
+            <span class="px-2.5 py-0.5 text-[11px] bg-pink-100 text-pink-600 rounded-full font-black">必填</span>
+          </label>
+          <input id="inputName" type="text" required placeholder="請輸入您的名字或暱稱" class="w-full px-3.5 py-2.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 text-sm font-bold text-stone-800 placeholder-stone-400 focus:bg-white focus:outline-none" />
+        </div>
+
+        <div class="cute-form-card p-4 rounded-3xl space-y-2">
+          <label class="flex items-center justify-between">
+            <span class="text-sm font-black text-stone-800">學校</span>
+            <span class="px-2.5 py-0.5 text-[11px] bg-stone-100 text-stone-500 rounded-full font-bold">選填</span>
+          </label>
+          <input id="inputSchool" type="text" placeholder="請輸入就讀學校名稱" class="w-full px-3.5 py-2.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 text-sm font-bold text-stone-800 placeholder-stone-400 focus:bg-white focus:outline-none" />
+        </div>
+
+        <div class="cute-form-card p-4 rounded-3xl space-y-2">
+          <label class="flex items-center justify-between">
+            <span class="text-sm font-black text-stone-800">誰邀請你來的？</span>
+            <span class="px-2.5 py-0.5 text-[11px] bg-pink-100 text-pink-600 rounded-full font-black">必填</span>
+          </label>
+          <input id="inputInviter" type="text" required placeholder="請輸入邀請人的名字" class="w-full px-3.5 py-2.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 text-sm font-bold text-stone-800 placeholder-stone-400 focus:bg-white focus:outline-none" />
+        </div>
+
+        <div class="cute-form-card p-4 rounded-3xl space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-black text-stone-800">是否為新朋友</span>
+            <span class="px-2.5 py-0.5 text-[11px] bg-pink-100 text-pink-600 rounded-full font-black">必填</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 pt-0.5">
+            <button type="button" id="btnFriendNew" onclick="selectFriendStatus('new')" class="py-3.5 px-3 rounded-2xl border-2 border-stone-200 bg-stone-50 text-stone-600 font-black text-sm transition transform active:scale-95">
+              是，我是新朋友
+            </button>
+            <button type="button" id="btnFriendOld" onclick="selectFriendStatus('old')" class="py-3.5 px-3 rounded-2xl border-2 border-stone-200 bg-stone-50 text-stone-600 font-black text-sm transition transform active:scale-95">
+              否，我是舊朋友
+            </button>
+          </div>
+        </div>
+
+        <div class="cute-form-card p-4 rounded-3xl space-y-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-black text-stone-800">挑選你的專屬小熊軟糖</span>
+            <span class="px-2.5 py-0.5 text-[11px] bg-amber-100 text-amber-700 rounded-full font-black">首頁互動</span>
+          </div>
+          <div id="regBearColorPicker" class="grid grid-cols-6 gap-1.5 pt-1"></div>
+          <div class="pt-1 space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-stone-600">點小熊時要講的話 <span class="text-stone-400 font-normal">(不顯示名字)</span></span>
+              <span id="bearWordCounter" class="font-black text-pink-500">0 / 5 字</span>
+            </div>
+            <input
+              id="inputBearWords"
+              type="text"
+              maxlength="5"
+              oninput="updateBearWordCount(this)"
+              placeholder="例如：好玩~、耶！(5字內)"
+              class="w-full px-3.5 py-2.5 rounded-2xl bg-stone-50/80 border border-stone-200/70 text-sm font-bold text-stone-800 placeholder-stone-400 focus:bg-white focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="pt-3 pb-6">
+          <button type="submit" id="submitRegBtn" class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 active:opacity-95 text-white font-black text-base rounded-full shadow-lg shadow-purple-500/25 transition transform active:scale-95">
+            確認送出報名
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==================== 5. 報名成功憑證彈窗 ==================== -->
+    <div id="modalSuccess" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5">
+      <div class="bg-white w-full max-w-sm rounded-[32px] p-6 text-center space-y-4 shadow-2xl border-4 border-pink-100">
+        <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black shadow-inner">✓</div>
+        <h3 class="text-xl font-black text-stone-900">報名完成！</h3>
+        <p id="successSubMsg" class="text-xs font-black py-3 px-4 rounded-2xl leading-relaxed border"></p>
+        <div class="bg-stone-50 p-4 rounded-2xl text-left text-xs space-y-2.5 border border-stone-100">
+          <div class="flex justify-between"><span class="text-stone-400 font-medium">活動名稱</span><span id="certEvent" class="font-black text-stone-800"></span></div>
+          <div class="flex justify-between"><span class="text-stone-400 font-medium">參加人</span><span id="certName" class="font-black text-stone-800"></span></div>
+          <div class="flex justify-between"><span class="text-stone-400 font-medium">邀請人</span><span id="certInviter" class="font-black text-stone-800"></span></div>
+          <div class="flex justify-between"><span class="text-stone-400 font-medium">小熊台詞</span><span id="certBearWords" class="font-black text-pink-600"></span></div>
+          <div class="flex justify-between"><span class="text-stone-400 font-medium">入場費用</span><span id="certFee" class="font-black text-emerald-600"></span></div>
+        </div>
+        <button onclick="closeSuccessModal()" class="w-full py-3.5 bg-stone-900 text-white font-black text-sm rounded-full shadow-md active:scale-95 transition">
+          返回首頁看你的小熊
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 6. 管理者密碼驗證彈窗 ==================== -->
+    <div id="modalPassword" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5">
+      <div id="passwordBox" class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-black text-stone-900">🔒 管理者驗證</h3>
+          <button onclick="closePasswordModal()" class="text-stone-400 hover:text-stone-600 text-lg">✕</button>
+        </div>
+        <p class="text-xs text-stone-500">請輸入管理者密碼以解鎖編輯與名單權限</p>
+        <input id="adminPwdInput" type="password" placeholder="請輸入密碼" class="w-full px-4 py-2.5 bg-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onkeydown="if(event.key==='Enter') verifyAdminPassword()" />
+        <p id="pwdErrorMsg" class="hidden text-xs font-bold text-rose-500">密碼錯誤，請重新輸入</p>
+        <button onclick="verifyAdminPassword()" class="w-full py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl">
+          確認解鎖
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 7. 新增 / 編輯活動彈窗 ==================== -->
+    <div id="modalEditor" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+      <div class="bg-white w-full max-w-[430px] h-[92dvh] sm:h-[820px] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+        <div class="px-4 py-3.5 border-b border-stone-100 flex items-center justify-between bg-white sticky top-0 z-20">
+          <button onclick="closeEventEditor()" class="text-xs font-bold text-stone-500 px-2 py-1">取消</button>
+          <h3 id="editorHeaderTitle" class="text-sm font-black text-stone-800">新增活動</h3>
+          <button onclick="saveEventFromEditor()" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-full">儲存發布</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-10">
+          <label class="relative block w-full aspect-video bg-stone-100 border-b border-stone-200 cursor-pointer overflow-hidden group">
+            <img id="editorBannerPreview" class="hidden w-full h-full object-contain bg-stone-900" />
+            <div id="editorBannerPlaceholder" class="w-full h-full flex flex-col items-center justify-center text-stone-400 space-y-1">
+              <span class="text-2xl">📷</span>
+              <span class="text-xs font-bold">點擊上傳 16:9 活動主視覺</span>
+            </div>
+            <div class="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] px-2.5 py-1 rounded-full">更換圖片</div>
+            <input type="file" accept="image/*" class="hidden" onchange="handleEditorBannerUpload(event)" />
+          </label>
+
+          <div class="p-5 space-y-4 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">報名狀態</label>
+                <select id="editStatus" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800">
+                  <option value="open">報名中</option>
+                  <option value="closed">報名截止</option>
+                  <option value="ended">已結束</option>
+                </select>
+              </div>
+              <div class="flex flex-col justify-end">
+                <label class="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer font-bold text-amber-900">
+                  <input type="checkbox" id="editIsHomeFeatured" class="rounded text-amber-600" />
+                  <span>設為首頁小熊連動活動</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label class="font-bold text-stone-600 block mb-1">馬卡龍卡片色系</label>
+              <select id="editColorTheme" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800">
+                <option value="0">🌸 蜜桃粉 (Pink)</option>
+                <option value="1">🌿 薄荷綠 (Mint)</option>
+                <option value="2">🍋 奶油黃 (Butter)</option>
+                <option value="3">💜 薰衣草紫 (Lavender)</option>
+                <option value="4">☁️ 蘇打藍 (Sky)</option>
+                <option value="5">🍑 杏桃橘 (Peach)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="font-bold text-stone-600 block mb-1">活動名稱 *</label>
+              <input id="editTitle" type="text" placeholder="例如：北北基野餐日" class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">列表顯示日期 *</label>
+                <input id="editDateShort" type="text" placeholder="2026/10/22 (四)" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+              </div>
+              <div>
+                <label class="font-bold text-rose-600 block mb-1">報名截止日期 *</label>
+                <input id="editDeadline" type="text" placeholder="2026/10/20 23:59" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+              </div>
+            </div>
+
+            <div>
+              <label class="font-bold text-stone-600 block mb-1">完整活動時間 *</label>
+              <input id="editTimeFull" type="text" placeholder="2026/10/22 週四 19:00 - 21:00" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+            </div>
+
+            <div>
+              <label class="font-bold text-stone-600 block mb-1">活動地點 (只顯示一行) *</label>
+              <input id="editLocation" type="text" placeholder="臺北市大安森林公園" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">報名金額 (0元顯示免費)</label>
+                <input id="editPrice" type="number" min="0" placeholder="100" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800" />
+              </div>
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">收費方式說明</label>
+                <input id="editFeeNote" type="text" placeholder="現場收費" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+              </div>
+            </div>
+
+            <div>
+              <label class="font-bold text-stone-600 block mb-1">活動介紹內容</label>
+              <textarea id="editDesc" rows="5" placeholder="請輸入活動詳細介紹..." class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 leading-relaxed"></textarea>
+            </div>
+
+            <div id="deleteEventWrap" class="hidden pt-3 border-t border-stone-100">
+              <button type="button" onclick="deleteCurrentEvent()" class="w-full py-2.5 text-rose-600 bg-rose-50 rounded-xl font-bold">刪除此活動</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 8. 報名名單管理彈窗 ==================== -->
+    <div id="modalAttendees" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+      <div class="bg-white w-full max-w-[430px] h-[80dvh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+        <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-black text-stone-900">報名名單</h3>
+            <p id="attendeeModalSubtitle" class="text-xs text-stone-400"></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportAttendeesCSV()" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">匯出 CSV</button>
+            <button onclick="closeAttendeeModal()" class="p-1 text-stone-400 hover:text-stone-600 text-lg">✕</button>
+          </div>
+        </div>
+        <div id="attendeeListContainer" class="flex-1 overflow-y-auto p-4 space-y-2.5"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 9. 首頁綁定活動選擇彈窗 ==================== -->
+    <div id="modalHomeConfig" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5">
+      <div class="bg-white w-full max-w-xs rounded-3xl p-5 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-black text-stone-900">🎯 選擇首頁小熊連動活動</h3>
+          <button onclick="closeHomeConfigModal()" class="text-stone-400">✕</button>
+        </div>
+        <p class="text-xs text-stone-500">勾選的活動，其「已報名人數」與大家選的小熊顏色/台詞將直接顯示在首頁草地上：</p>
+        <div id="homeEventRadioList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div id="toastMsg" class="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-stone-900/90 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity"></div>
+  </div>
+
+  <script>
+    /**************************************************************
+     * ★ 已自動填入您的 Supabase 專案網址與金鑰 ★
+     **************************************************************/
+    const SUPABASE_URL = 'https://hivmlpnrhuafsdxbtifh.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_cHXUpha2w9ML3kwsL9mohg_qbE8tc5I';
+
+    const isSupabaseConfigured = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length > 20;
+    const supabaseClient = isSupabaseConfigured
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    function compressImageFile(file, maxWidth = 1000, quality = 0.82) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            if (w > maxWidth) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function setCloudLoading(show) {
+      document.getElementById('cloudLoadingOverlay').classList.toggle('hidden', !show);
+    }
+
+    const STORAGE_KEY_EVENTS = 'picnic_platform_events_v5';
+    const STORAGE_KEY_REGS   = 'picnic_platform_regs_v5';
+    const STORAGE_KEY_HOME_EVENT = 'picnic_platform_home_event_v5';
+    const STORAGE_KEY_HOME_BG    = 'picnic_platform_home_bg_v5';
+    const STORAGE_KEY_FELLOWSHIP_BANNER = 'picnic_platform_fellowship_banner_v5';
+
+    const macaronThemes = [
+      { cardBg: 'bg-[#FFF0F5]', cardBorder: 'border-[#FBCFE8]', badgeBg: 'bg-[#F472B6]', badgeText: 'text-white', softBadgeBg: 'bg-[#FCE7F3]', softBadgeText: 'text-[#9D174D]', titleText: 'text-[#831843]', subText: 'text-[#9D174D]/75', arrowText: 'text-[#F472B6]' },
+      { cardBg: 'bg-[#ECFDF5]', cardBorder: 'border-[#A7F3D0]', badgeBg: 'bg-[#34D399]', badgeText: 'text-white', softBadgeBg: 'bg-[#D1FAE5]', softBadgeText: 'text-[#065F46]', titleText: 'text-[#064E3B]', subText: 'text-[#065F46]/75', arrowText: 'text-[#34D399]' },
+      { cardBg: 'bg-[#FEFCE8]', cardBorder: 'border-[#FDE047]', badgeBg: 'bg-[#FACC15]', badgeText: 'text-[#713F12]', softBadgeBg: 'bg-[#FEF9C3]', softBadgeText: 'text-[#854D0E]', titleText: 'text-[#713F12]', subText: 'text-[#854D0E]/80', arrowText: 'text-[#EAB308]' },
+      { cardBg: 'bg-[#F5F3FF]', cardBorder: 'border-[#DDD6FE]', badgeBg: 'bg-[#A78BFA]', badgeText: 'text-white', softBadgeBg: 'bg-[#EDE9FE]', softBadgeText: 'text-[#5B21B6]', titleText: 'text-[#4C1D95]', subText: 'text-[#5B21B6]/75', arrowText: 'text-[#A78BFA]' },
+      { cardBg: 'bg-[#F0F9FF]', cardBorder: 'border-[#BAE6FD]', badgeBg: 'bg-[#38BDF8]', badgeText: 'text-white', softBadgeBg: 'bg-[#E0F2FE]', softBadgeText: 'text-[#075985]', titleText: 'text-[#0C4A6E]', subText: 'text-[#075985]/75', arrowText: 'text-[#38BDF8]' },
+      { cardBg: 'bg-[#FFF7ED]', cardBorder: 'border-[#FED7AA]', badgeBg: 'bg-[#FB923C]', badgeText: 'text-white', softBadgeBg: 'bg-[#FFEDD5]', softBadgeText: 'text-[#9A3412]', titleText: 'text-[#7C2D12]', subText: 'text-[#9A3412]/75', arrowText: 'text-[#FB923C]' }
+    ];
+
+    const defaultFellowshipBanner = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffecd2"/>
+            <stop offset="100%" stop-color="#fcb69f"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="450" fill="url(#bg)"/>
+        <circle cx="120" cy="90" r="65" fill="#fff" opacity="0.35"/>
+        <circle cx="680" cy="360" r="95" fill="#fff" opacity="0.35"/>
+        <rect x="60" y="55" width="680" height="340" rx="36" fill="#ffffff" opacity="0.65"/>
+        <text x="400" y="195" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="54" fill="#7c2d12">✨ 歡迎來到我們的大家庭 ✨</text>
+        <text x="400" y="260" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="28" fill="#9a3412">一起吃飯・一起歡笑・一起創造美好回憶</text>
+        <rect x="270" y="295" width="260" height="48" rx="24" fill="#fb923c"/>
+        <text x="400" y="327" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="22" fill="#ffffff">點選下方活動立即報名</text>
+      </svg>
+    `);
+
+    const defaultEvents = [
+      {
+        id: 'evt_1',
+        title: '北北基野餐日',
+        dateShort: '2026/10/22 (四)',
+        timeFull: '2026/10/22 週四 19:00 - 21:00',
+        deadline: '2026/10/21 23:59',
+        location: '臺北市大安森林公園',
+        price: 100,
+        feeNote: '現場收費',
+        status: 'open',
+        colorIndex: 0,
+        banner: 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?auto=format&fit=crop&w=1000&q=80',
+        desc: '開心暢聊的夜晚\n配上熱狗炸雞一起開趴啦🎉🎉🎉\n歡迎大家一起報名參加！'
+      }
+    ];
+
+    let events = JSON.parse(localStorage.getItem(STORAGE_KEY_EVENTS)) || defaultEvents;
+    let registrations = JSON.parse(localStorage.getItem(STORAGE_KEY_REGS)) || [];
+    let homeFeaturedEventId = localStorage.getItem(STORAGE_KEY_HOME_EVENT) || (events[0]?.id || 'evt_1');
+    let fellowshipBanner = localStorage.getItem(STORAGE_KEY_FELLOWSHIP_BANNER) || defaultFellowshipBanner;
+    let customHomeBg = localStorage.getItem(STORAGE_KEY_HOME_BG) || '';
+
+    let isAdminUnlocked = false;
+    let currentEventId = events[0]?.id || 'evt_1';
+    let editingEventId = null;
+    let tempEditorBanner = '';
+    let selectedFriendType = null;
+    let selectedBearColorId = 'ruby';
+    let showEndedEvents = false;
+
+    function saveLocalBackup() {
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events));
+      localStorage.setItem(STORAGE_KEY_REGS, JSON.stringify(registrations));
+      localStorage.setItem(STORAGE_KEY_HOME_EVENT, homeFeaturedEventId);
+      localStorage.setItem(STORAGE_KEY_FELLOWSHIP_BANNER, fellowshipBanner);
+      if (customHomeBg) localStorage.setItem(STORAGE_KEY_HOME_BG, customHomeBg);
+    }
+
+    async function loadFromCloud() {
+      if (!supabaseClient) return;
+      setCloudLoading(true);
+      try {
+        const [cfgRes, evtRes, regRes] = await Promise.all([
+          supabaseClient.from('app_config').select('*').eq('id', 'main').maybeSingle(),
+          supabaseClient.from('events').select('*').order('created_at', { ascending: false }),
+          supabaseClient.from('registrations').select('*').order('created_at', { ascending: true })
+        ]);
+
+        if (evtRes.data && evtRes.data.length > 0) {
+          events = evtRes.data.map(r => ({
+            id: r.id,
+            title: r.title,
+            dateShort: r.date_short,
+            timeFull: r.time_full,
+            deadline: r.deadline,
+            location: r.location,
+            price: Number(r.price) || 0,
+            feeNote: r.fee_note,
+            status: r.status,
+            colorIndex: Number(r.color_index) || 0,
+            banner: r.banner,
+            desc: r.description
+          }));
+          currentEventId = events[0].id;
+        } else {
+          const e0 = defaultEvents[0];
+          await supabaseClient.from('events').upsert({
+            id: e0.id, title: e0.title, date_short: e0.dateShort, time_full: e0.timeFull,
+            deadline: e0.deadline, location: e0.location, price: e0.price, fee_note: e0.feeNote,
+            status: e0.status, color_index: e0.colorIndex, banner: e0.banner, description: e0.desc
+          });
+        }
+
+        if (regRes.data) {
+          registrations = regRes.data.map(r => ({
+            id: r.id,
+            eventId: r.event_id,
+            name: r.name,
+            school: r.school,
+            inviter: r.inviter,
+            isNew: r.is_new,
+            bearColor: r.bear_color || 'ruby',
+            bearWords: r.bear_words || '好玩~',
+            time: r.reg_time
+          }));
+        }
+
+        if (cfgRes.data) {
+          if (cfgRes.data.home_featured_event_id) homeFeaturedEventId = cfgRes.data.home_featured_event_id;
+          if (cfgRes.data.fellowship_banner) fellowshipBanner = cfgRes.data.fellowship_banner;
+          if (cfgRes.data.home_bg) {
+            customHomeBg = cfgRes.data.home_bg;
+            applyCustomHomeBg(customHomeBg);
+          }
+        } else {
+          await supabaseClient.from('app_config').upsert({
+            id: 'main',
+            home_featured_event_id: homeFeaturedEventId,
+            fellowship_banner: fellowshipBanner,
+            home_bg: customHomeBg
+          });
+        }
+
+        saveLocalBackup();
+        document.getElementById('fellowshipBannerImg').src = fellowshipBanner;
+        syncHomeBearsWithRegistrations();
+      } catch (err) {
+        console.error('Cloud sync error:', err);
+      } finally {
+        setCloudLoading(false);
+      }
+    }
+
+    async function syncConfigToCloud() {
+      saveLocalBackup();
+      if (!supabaseClient) return;
+      await supabaseClient.from('app_config').upsert({
+        id: 'main',
+        home_featured_event_id: homeFeaturedEventId,
+        fellowship_banner: fellowshipBanner,
+        home_bg: customHomeBg
+      });
+    }
+
+    const gummyPalette = [
+      { id: 'ruby',   name: '晶瑩紅', light: '#ff758f', mid: '#e01e37', dark: '#800f2f', core: '#ff4d6d', ring: 'border-rose-400 bg-rose-50 text-rose-700' },
+      { id: 'peach',  name: '蜜桃粉', light: '#ffc2d1', mid: '#ff8fab', dark: '#c9184a', core: '#ffb3c6', ring: 'border-pink-400 bg-pink-50 text-pink-700' },
+      { id: 'amber',  name: '琥珀橘', light: '#ffca3a', mid: '#ff7b00', dark: '#b54400', core: '#ff9e00', ring: 'border-orange-400 bg-orange-50 text-orange-700' },
+      { id: 'lemon',  name: '檸檬黃', light: '#ffff80', mid: '#ffd000', dark: '#b88600', core: '#ffe642', ring: 'border-amber-400 bg-amber-50 text-amber-800' },
+      { id: 'apple',  name: '蘋果綠', light: '#9ef01a', mid: '#38b000', dark: '#006400', core: '#70e000', ring: 'border-emerald-400 bg-emerald-50 text-emerald-700' },
+      { id: 'grape',  name: '葡萄紫', light: '#e0aaff', mid: '#9d4edd', dark: '#3c096c', core: '#c77dff', ring: 'border-purple-400 bg-purple-50 text-purple-700' }
+    ];
+
+    function createAuthenticGummyBearSVG(c, uid) {
+      return `
+        <svg viewBox="0 0 120 160" class="w-full h-full overflow-visible" style="filter: drop-shadow(0 6px 8px rgba(30,50,15,0.28));">
+          <defs>
+            <radialGradient id="bodyGrad_${uid}" cx="38%" cy="32%" r="68%">
+              <stop offset="0%" stop-color="${c.light}" stop-opacity="0.92"/>
+              <stop offset="45%" stop-color="${c.core}" stop-opacity="0.88"/>
+              <stop offset="82%" stop-color="${c.mid}" stop-opacity="0.94"/>
+              <stop offset="100%" stop-color="${c.dark}" stop-opacity="0.96"/>
+            </radialGradient>
+            <radialGradient id="subGlow_${uid}" cx="50%" cy="55%" r="48%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+              <stop offset="60%" stop-color="${c.light}" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="${c.mid}" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse cx="60" cy="148" rx="34" ry="8" fill="rgba(25, 50, 15, 0.25)"/>
+          <path d="M 32,18
+                   C 16,12 12,32 24,42
+                   C 18,52 19,65 26,72
+                   C 12,78 10,98 25,104
+                   C 21,114 14,132 26,142
+                   C 36,148 48,143 51,134
+                   C 56,135 64,135 69,134
+                   C 72,143 84,148 94,142
+                   C 106,132 99,114 95,104
+                   C 110,98 108,78 94,72
+                   C 101,65 102,52 96,42
+                   C 108,32 104,12 88,18
+                   C 76,12 44,12 32,18 Z"
+                fill="url(#bodyGrad_${uid})"
+                stroke="${c.light}" stroke-opacity="0.55" stroke-width="1.5" />
+          <ellipse cx="60" cy="95" rx="28" ry="34" fill="url(#subGlow_${uid})" />
+          <ellipse cx="60" cy="46" rx="26" ry="22" fill="url(#subGlow_${uid})" />
+          <circle cx="28" cy="27" r="7" fill="${c.dark}" opacity="0.28"/>
+          <circle cx="27" cy="26" r="4" fill="#ffffff" opacity="0.45"/>
+          <circle cx="92" cy="27" r="7" fill="${c.dark}" opacity="0.28"/>
+          <circle cx="91" cy="26" r="4" fill="#ffffff" opacity="0.45"/>
+          <path d="M 38,24 Q 60,17 78,24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" opacity="0.65"/>
+          <ellipse cx="43" cy="34" rx="8" ry="4.5" transform="rotate(-18 43 34)" fill="#ffffff" opacity="0.55"/>
+          <circle cx="45" cy="44" r="3.8" fill="${c.dark}" opacity="0.55"/>
+          <circle cx="44" cy="42.5" r="1.6" fill="#ffffff" opacity="0.8"/>
+          <circle cx="75" cy="44" r="3.8" fill="${c.dark}" opacity="0.55"/>
+          <circle cx="74" cy="42.5" r="1.6" fill="#ffffff" opacity="0.8"/>
+          <ellipse cx="60" cy="54" rx="12" ry="8.5" fill="${c.light}" opacity="0.55"/>
+          <ellipse cx="60" cy="52" rx="5.5" ry="3.8" fill="${c.dark}" opacity="0.55"/>
+          <ellipse cx="58.5" cy="50.8" rx="2.2" ry="1.2" fill="#ffffff" opacity="0.75"/>
+          <path d="M 42,74 Q 60,86 78,74" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+          <ellipse cx="56" cy="102" rx="16" ry="13" fill="#ffffff" opacity="0.32"/>
+          <circle cx="30" cy="90" r="9.5" fill="${c.mid}" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.8"/>
+          <circle cx="28" cy="88" r="4" fill="#ffffff" opacity="0.55"/>
+          <circle cx="90" cy="90" r="9.5" fill="${c.mid}" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.8"/>
+          <circle cx="88" cy="88" r="4" fill="#ffffff" opacity="0.55"/>
+          <circle cx="33" cy="131" r="10.5" fill="${c.dark}" opacity="0.32"/>
+          <circle cx="33" cy="131" r="7.5" fill="${c.light}" opacity="0.5"/>
+          <circle cx="31" cy="129" r="3.5" fill="#ffffff" opacity="0.7"/>
+          <circle cx="87" cy="131" r="10.5" fill="${c.dark}" opacity="0.32"/>
+          <circle cx="87" cy="131" r="7.5" fill="${c.light}" opacity="0.5"/>
+          <circle cx="85" cy="129" r="3.5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      `;
+    }
+
+    let activeBears = [];
+    let bearUidCounter = 0;
+
+    function getFeaturedEventRegs() {
+      return registrations.filter(r => r.eventId === homeFeaturedEventId);
+    }
+
+    function randomGrassPoint() {
+      return {
+        x: 15 + Math.random() * 70,
+        y: 44 + Math.random() * 34
+      };
+    }
+
+    function createBearEntity(startFromEdge = false, customColorId = null, customWords = null) {
+      const stage = document.getElementById('bearStage');
+      if (!stage) return;
+
+      bearUidCounter++;
+      const color = customColorId
+        ? (gummyPalette.find(c => c.id === customColorId) || gummyPalette[0])
+        : gummyPalette[(bearUidCounter - 1) % gummyPalette.length];
+
+      const words = (customWords && customWords.trim()) ? customWords.trim().slice(0, 5) : '好玩~';
+      const target = randomGrassPoint();
+
+      let startX = target.x;
+      let startY = target.y;
+
+      if (startFromEdge) {
+        const edge = Math.floor(Math.random() * 3);
+        if (edge === 0) { startX = -12; startY = 48 + Math.random() * 28; }
+        else if (edge === 1) { startX = 112; startY = 48 + Math.random() * 28; }
+        else { startX = 20 + Math.random() * 60; startY = 108; }
+      }
+
+      const el = document.createElement('div');
+      el.className = 'absolute cursor-pointer select-none will-change-transform';
+      el.style.width = '40px';
+      el.style.height = '54px';
+      el.style.left = '0px';
+      el.style.top = '0px';
+
+      const inner = document.createElement('div');
+      inner.className = 'w-full h-full relative';
+      inner.innerHTML = createAuthenticGummyBearSVG(color, bearUidCounter);
+      el.appendChild(inner);
+
+      const bearObj = {
+        id: bearUidCounter,
+        el,
+        inner,
+        color,
+        words,
+        x: startX,
+        y: startY,
+        targetX: target.x,
+        targetY: target.y,
+        speed: startFromEdge ? 0.22 : (0.045 + Math.random() * 0.035),
+        isEntering: startFromEdge,
+        walkPhase: Math.random() * Math.PI * 2,
+        pauseTimer: 0
+      };
+
+      const onBearTap = (e) => {
+        e.stopPropagation();
+        inner.classList.remove('squish-anim');
+        void inner.offsetWidth;
+        inner.classList.add('squish-anim');
+
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble absolute -top-7 left-1/2 px-2.5 py-0.5 rounded-full bg-white/95 text-stone-800 font-black text-[11px] shadow-md whitespace-nowrap pointer-events-none border border-stone-200';
+        bubble.innerText = bearObj.words;
+        el.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 1350);
+
+        const nextPt = randomGrassPoint();
+        bearObj.targetX = nextPt.x;
+        bearObj.targetY = nextPt.y;
+        bearObj.pauseTimer = 0;
+        bearObj.speed = 0.09;
+      };
+
+      el.addEventListener('pointerdown', onBearTap);
+      stage.appendChild(el);
+      activeBears.push(bearObj);
+    }
+
+    function syncHomeBearsWithRegistrations() {
+      const regList = getFeaturedEventRegs();
+      document.getElementById('homeRegCountNum').innerText = regList.length;
+
+      const stage = document.getElementById('bearStage');
+      stage.innerHTML = '';
+      activeBears = [];
+
+      regList.forEach(reg => {
+        createBearEntity(false, reg.bearColor, reg.bearWords);
+      });
+    }
+
+    function spawnOneBearFromEdge() {
+      const randomPhrases = ['好玩~', '一起來！', '耶～', '太開心', '衝呀！'];
+      const phrase = randomPhrases[Math.floor(Math.random() * randomPhrases.length)];
+      createBearEntity(true, null, phrase);
+    }
+
+    function updateBearsLoop() {
+      const stage = document.getElementById('bearStage');
+      if (stage && !document.getElementById('viewHome').classList.contains('hidden')) {
+        const rect = stage.getBoundingClientRect();
+        const w = rect.width || 400;
+        const h = rect.height || 800;
+
+        activeBears.forEach(b => {
+          const dx = b.targetX - b.x;
+          const dy = b.targetY - b.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist > 0.8) {
+            b.x += (dx / dist) * b.speed;
+            b.y += (dy / dist) * b.speed;
+            b.walkPhase += b.isEntering ? 0.28 : 0.14;
+          } else {
+            if (b.isEntering) {
+              b.isEntering = false;
+              b.speed = 0.045 + Math.random() * 0.035;
+              b.inner.classList.remove('squish-anim');
+              void b.inner.offsetWidth;
+              b.inner.classList.add('squish-anim');
+            }
+            b.pauseTimer++;
+            if (b.pauseTimer > 50 + Math.random() * 90) {
+              const next = randomGrassPoint();
+              b.targetX = next.x;
+              b.targetY = next.y;
+              b.pauseTimer = 0;
+              b.speed = 0.045 + Math.random() * 0.035;
+            }
+          }
+
+          const px = (b.x / 100) * w - 20;
+          const py = (b.y / 100) * h - 46;
+          const bobY = dist > 0.8 ? Math.abs(Math.sin(b.walkPhase)) * -4 : 0;
+          const tilt = dist > 0.8 ? Math.sin(b.walkPhase) * 6 : 0;
+          const depthScale = 0.82 + ((b.y - 40) / 45) * 0.28;
+
+          b.el.style.zIndex = Math.floor(b.y * 10);
+          b.el.style.transform = `translate3d(${px.toFixed(1)}px, ${(py + bobY).toFixed(1)}px, 0) scale(${depthScale.toFixed(2)}) rotate(${tilt.toFixed(1)}deg)`;
+        });
+      }
+      requestAnimationFrame(updateBearsLoop);
+    }
+
+    function switchView(viewName) {
+      ['viewHome', 'viewList', 'viewDetail', 'viewReg'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+
+      if (viewName === 'home') {
+        document.getElementById('viewHome').classList.remove('hidden');
+        syncHomeBearsWithRegistrations();
+      } else if (viewName === 'list') {
+        document.getElementById('viewList').classList.remove('hidden');
+        renderEventList();
+      } else if (viewName === 'detail') {
+        document.getElementById('viewDetail').classList.remove('hidden');
+        renderEventDetail(currentEventId);
+      } else if (viewName === 'reg') {
+        document.getElementById('viewReg').classList.remove('hidden');
+      }
+      updateAdminUI();
+    }
+
+    async function handleFellowshipBannerUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      setCloudLoading(true);
+      fellowshipBanner = await compressImageFile(file, 1000, 0.82);
+      document.getElementById('fellowshipBannerImg').src = fellowshipBanner;
+      await syncConfigToCloud();
+      setCloudLoading(false);
+      showToast('已同步更新團契主視覺大圖！');
+    }
+
+    function renderEventList() {
+      document.getElementById('fellowshipBannerImg').src = fellowshipBanner;
+
+      const activeContainer = document.getElementById('activeEventsContainer');
+      const endedContainer = document.getElementById('endedEventsContainer');
+      activeContainer.innerHTML = '';
+      endedContainer.innerHTML = '';
+
+      const activeList = events.filter(e => e.status === 'open' || e.status === 'closed');
+      const endedList  = events.filter(e => e.status === 'ended');
+
+      if (activeList.length === 0) {
+        activeContainer.innerHTML = `<div class="text-center py-10 text-xs text-stone-400">目前尚無進行中的活動</div>`;
+      } else {
+        activeList.forEach((ev, idx) => {
+          activeContainer.appendChild(createMacaronEventCard(ev, idx));
+        });
+      }
+
+      endedList.forEach((ev, idx) => {
+        endedContainer.appendChild(createMacaronEventCard(ev, idx));
+      });
+
+      const toggleBtn = document.getElementById('toggleEndedBtn');
+      toggleBtn.style.display = endedList.length > 0 ? 'flex' : 'none';
+    }
+
+    function createMacaronEventCard(ev, fallbackIdx) {
+      const regCount = registrations.filter(r => r.eventId === ev.id).length;
+      const isHomeLinked = (ev.id === homeFeaturedEventId);
+      const themeIdx = (ev.colorIndex !== undefined ? Number(ev.colorIndex) : fallbackIdx) % macaronThemes.length;
+      const theme = macaronThemes[themeIdx];
+
+      const card = document.createElement('div');
+      card.onclick = () => {
+        currentEventId = ev.id;
+        switchView('detail');
+      };
+
+      const isEnded = (ev.status === 'ended');
+      const bgClass = isEnded ? 'bg-stone-100 border-stone-200' : `${theme.cardBg} ${theme.cardBorder}`;
+      const titleClass = isEnded ? 'text-stone-700' : theme.titleText;
+      const dateClass = isEnded ? 'text-stone-400' : theme.subText;
+      const arrowClass = isEnded ? 'text-stone-300' : theme.arrowText;
+
+      let badgeHTML = '';
+      if (ev.status === 'open') {
+        badgeHTML = `<span class="px-2.5 py-0.5 text-[11px] font-black ${theme.badgeBg} ${theme.badgeText} rounded-full shadow-sm">報名中</span>`;
+      } else if (ev.status === 'closed') {
+        badgeHTML = `<span class="px-2.5 py-0.5 text-[11px] font-black bg-amber-400 text-amber-950 rounded-full">報名截止</span>`;
+      } else {
+        badgeHTML = `<span class="px-2.5 py-0.5 text-[11px] font-bold bg-stone-300 text-stone-600 rounded-full">已結束</span>`;
+      }
+
+      card.className = `${bgClass} p-3.5 rounded-[26px] border-2 shadow-sm flex items-center gap-3.5 cursor-pointer active:scale-[0.98] transition`;
+      card.innerHTML = `
+        <img src="${ev.banner}" alt="${ev.title}" class="w-24 h-16 rounded-2xl object-cover bg-white border-2 border-white shadow-sm shrink-0" />
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 mb-1">
+            ${badgeHTML}
+            ${isAdminUnlocked && isHomeLinked ? `<span class="px-2 py-0.5 text-[10px] font-black bg-white/90 text-indigo-600 rounded-full border border-indigo-200">首頁小熊(${regCount})</span>` : ''}
+          </div>
+          <h3 class="text-base font-black ${titleClass} truncate">${ev.title}</h3>
+          <p class="text-xs ${dateClass} font-bold mt-0.5 truncate">${ev.dateShort}</p>
+        </div>
+        <div class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shrink-0 shadow-sm">
+          <svg class="w-4 h-4 ${arrowClass}" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      `;
+      return card;
+    }
+
+    function toggleEndedEvents() {
+      showEndedEvents = !showEndedEvents;
+      const container = document.getElementById('endedEventsContainer');
+      const text = document.getElementById('toggleEndedText');
+      const icon = document.getElementById('toggleEndedIcon');
+      if (showEndedEvents) {
+        container.classList.remove('hidden');
+        text.innerText = '隱藏已結束的活動';
+        icon.classList.add('rotate-180');
+      } else {
+        container.classList.add('hidden');
+        text.innerText = '顯示已結束的活動';
+        icon.classList.remove('rotate-180');
+      }
+    }
+
+    function getEventTheme(ev) {
+      const idx = (ev && ev.colorIndex !== undefined) ? Number(ev.colorIndex) : 0;
+      return macaronThemes[idx % macaronThemes.length];
+    }
+
+    function renderEventDetail(eventId) {
+      const ev = events.find(e => e.id === eventId) || events[0];
+      if (!ev) return;
+      const theme = getEventTheme(ev);
+
+      document.getElementById('detailBannerImg').src = ev.banner;
+      document.getElementById('detailTitle').innerText = ev.title;
+      document.getElementById('detailTime').innerText = ev.timeFull;
+      document.getElementById('detailDeadline').innerText = ev.deadline;
+      document.getElementById('detailLocation').innerText = ev.location;
+      document.getElementById('detailFeeNote').innerText = ev.feeNote || '現場收費';
+      document.getElementById('detailDesc').innerText = ev.desc;
+
+      const infoBox = document.getElementById('detailInfoBox');
+      infoBox.className = `rounded-3xl p-4 space-y-3.5 border-2 text-sm shadow-sm ${theme.cardBg} ${theme.cardBorder}`;
+
+      const descBadge = document.getElementById('detailDescBadge');
+      descBadge.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${theme.softBadgeBg} ${theme.softBadgeText}`;
+
+      const badge = document.getElementById('detailStatusBadge');
+      const regBtn = document.getElementById('detailRegBtn');
+      if (ev.status === 'open') {
+        badge.className = `px-3.5 py-1 rounded-full text-xs font-black ${theme.badgeBg} ${theme.badgeText} shadow-sm`;
+        badge.innerText = '開放報名';
+        regBtn.disabled = false;
+        regBtn.innerText = '立即報名';
+      } else if (ev.status === 'closed') {
+        badge.className = 'px-3.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-700';
+        badge.innerText = '報名截止';
+        regBtn.disabled = true;
+        regBtn.innerText = '報名已截止';
+      } else {
+        badge.className = 'px-3.5 py-1 rounded-full text-xs font-bold bg-stone-200 text-stone-600';
+        badge.innerText = '已結束';
+        regBtn.disabled = true;
+        regBtn.innerText = '活動已結束';
+      }
+
+      const priceEl = document.getElementById('detailPriceDisplay');
+      priceEl.innerText = Number(ev.price) === 0 ? '免費' : `NT$${ev.price}`;
+
+      const count = registrations.filter(r => r.eventId === ev.id).length;
+      document.getElementById('detailAdminCount').innerText = count;
+    }
+
+    function renderRegBearPicker() {
+      const container = document.getElementById('regBearColorPicker');
+      container.innerHTML = '';
+
+      gummyPalette.forEach((c, idx) => {
+        const isSelected = (c.id === selectedBearColorId);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          selectedBearColorId = c.id;
+          renderRegBearPicker();
+        };
+
+        btn.className = `flex flex-col items-center justify-center p-1.5 rounded-2xl border-2 transition transform ${
+          isSelected
+            ? `${c.ring} scale-105 shadow-sm`
+            : 'border-stone-100 bg-stone-50/70 text-stone-400 hover:bg-stone-100/70'
+        }`;
+
+        btn.innerHTML = `
+          <div class="w-8 h-11 ${isSelected ? 'squish-anim' : ''}">
+            ${createAuthenticGummyBearSVG(c, 'picker_' + idx)}
+          </div>
+          <span class="text-[10px] font-black mt-1">${c.name}</span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function updateBearWordCount(inputEl) {
+      const len = inputEl.value.length;
+      document.getElementById('bearWordCounter').innerText = `${len} / 5 字`;
+    }
+
+    function openRegView() {
+      const ev = events.find(e => e.id === currentEventId) || events[0];
+      const theme = getEventTheme(ev);
+
+      document.getElementById('regForm').reset();
+      selectedFriendType = null;
+      selectedBearColorId = gummyPalette[0].id;
+      document.getElementById('bearWordCounter').innerText = '0 / 5 字';
+      updateFriendButtonsUI();
+      renderRegBearPicker();
+
+      const headerCard = document.getElementById('regEventHeaderCard');
+      headerCard.className = `p-3.5 rounded-3xl border-2 flex items-center gap-3.5 shadow-sm ${theme.cardBg} ${theme.cardBorder}`;
+      document.getElementById('regEventThumb').src = ev.banner;
+      document.getElementById('regEventTitle').innerText = ev.title;
+      document.getElementById('regEventDate').innerText = ev.timeFull;
+
+      switchView('reg');
+    }
+
+    function selectFriendStatus(type) {
+      selectedFriendType = type;
+      updateFriendButtonsUI();
+    }
+
+    function updateFriendButtonsUI() {
+      const btnNew = document.getElementById('btnFriendNew');
+      const btnOld = document.getElementById('btnFriendOld');
+
+      btnNew.className = 'py-3.5 px-3 rounded-2xl border-2 border-stone-200 bg-stone-50 text-stone-600 font-black text-sm transition transform active:scale-95';
+      btnOld.className = 'py-3.5 px-3 rounded-2xl border-2 border-stone-200 bg-stone-50 text-stone-600 font-black text-sm transition transform active:scale-95';
+
+      if (selectedFriendType === 'new') {
+        btnNew.className = 'py-3.5 px-3 rounded-2xl border-2 border-pink-400 bg-pink-50 text-pink-700 font-black text-sm shadow-sm transition transform scale-[1.02]';
+      } else if (selectedFriendType === 'old') {
+        btnOld.className = 'py-3.5 px-3 rounded-2xl border-2 border-purple-400 bg-purple-50 text-purple-700 font-black text-sm shadow-sm transition transform scale-[1.02]';
+      }
+    }
+
+    async function submitRegistration(e) {
+      e.preventDefault();
+      if (!selectedFriendType) {
+        showToast('請點選「是否為新朋友」唷！');
+        return;
+      }
+
+      const name = document.getElementById('inputName').value.trim();
+      const school = document.getElementById('inputSchool').value.trim();
+      const inviter = document.getElementById('inputInviter').value.trim();
+      const bearWords = (document.getElementById('inputBearWords').value.trim() || '好玩~').slice(0, 5);
+      const isNew = (selectedFriendType === 'new');
+      const ev = events.find(x => x.id === currentEventId);
+
+      const newReg = {
+        id: 'reg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        eventId: currentEventId,
+        name,
+        school,
+        inviter,
+        isNew,
+        bearColor: selectedBearColorId,
+        bearWords,
+        time: new Date().toLocaleString('zh-TW', { hour12: false })
+      };
+
+      setCloudLoading(true);
+      registrations.push(newReg);
+      saveLocalBackup();
+
+      if (supabaseClient) {
+        await supabaseClient.from('registrations').insert({
+          id: newReg.id,
+          event_id: newReg.eventId,
+          name: newReg.name,
+          school: newReg.school,
+          inviter: newReg.inviter,
+          is_new: newReg.isNew,
+          bear_color: newReg.bearColor,
+          bear_words: newReg.bearWords,
+          reg_time: newReg.time
+        });
+      }
+      setCloudLoading(false);
+
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+
+      document.getElementById('certEvent').innerText = ev.title;
+      document.getElementById('certName').innerText = name;
+      document.getElementById('certInviter').innerText = inviter;
+      document.getElementById('certBearWords').innerText = `「${bearWords}」`;
+      document.getElementById('certFee').innerText = (isNew || Number(ev.price) === 0) ? '免費參加' : `NT$${ev.price}`;
+
+      const subMsg = document.getElementById('successSubMsg');
+      if (isNew) {
+        subMsg.className = 'text-xs font-black py-3 px-4 rounded-2xl leading-relaxed border bg-emerald-50 text-emerald-700 border-emerald-200';
+        subMsg.innerText = '太棒了！新朋友免費參加！期待看見你！';
+      } else {
+        subMsg.className = 'text-xs font-black py-3 px-4 rounded-2xl leading-relaxed border bg-amber-50 text-amber-800 border-amber-200';
+        subMsg.innerText = '讚啦！距離你上次參加活動已經好久了，大家都好想念你唷！';
+      }
+
+      document.getElementById('modalSuccess').classList.remove('hidden');
+    }
+
+    function closeSuccessModal() {
+      document.getElementById('modalSuccess').classList.add('hidden');
+      switchView('home');
+    }
+
+    function handleAdminTrigger(source) {
+      if (isAdminUnlocked) {
+        if (source === 'detail') openAttendeeModal();
+        return;
+      }
+      document.getElementById('adminPwdInput').value = '';
+      document.getElementById('pwdErrorMsg').classList.add('hidden');
+      document.getElementById('modalPassword').classList.remove('hidden');
+      setTimeout(() => document.getElementById('adminPwdInput').focus(), 100);
+    }
+
+    function closePasswordModal() {
+      document.getElementById('modalPassword').classList.add('hidden');
+    }
+
+    function verifyAdminPassword() {
+      const val = document.getElementById('adminPwdInput').value.trim();
+      if (val === 'bbggood') {
+        isAdminUnlocked = true;
+        closePasswordModal();
+        updateAdminUI();
+        renderEventList();
+        renderEventDetail(currentEventId);
+        showToast('🔓 已解鎖管理者模式');
+      } else {
+        const box = document.getElementById('passwordBox');
+        document.getElementById('pwdErrorMsg').classList.add('hidden');
+        box.classList.remove('shake');
+        void box.offsetWidth;
+        box.classList.add('shake');
+      }
+    }
+
+    function logoutAdmin() {
+      isAdminUnlocked = false;
+      updateAdminUI();
+      renderEventList();
+      showToast('🔒 已鎖定管理者權限');
+    }
+
+    function updateAdminUI() {
+      document.getElementById('adminHomeBgBtn').classList.toggle('hidden', !isAdminUnlocked);
+      document.getElementById('adminHomeConfigBtn').classList.toggle('hidden', !isAdminUnlocked);
+      document.getElementById('listAdminBar').classList.toggle('hidden', !isAdminUnlocked);
+      document.getElementById('adminFellowshipBannerBtn').classList.toggle('hidden', !isAdminUnlocked);
+      document.getElementById('detailAdminActions').classList.toggle('hidden', !isAdminUnlocked);
+      document.getElementById('detailAdminPlaceholder').classList.toggle('hidden', isAdminUnlocked);
+
+      const lockIcon = document.getElementById('detailAdminIconBtn');
+      if (isAdminUnlocked) {
+        lockIcon.classList.replace('text-stone-300', 'text-amber-500');
+      } else {
+        lockIcon.classList.replace('text-amber-500', 'text-stone-300');
+      }
+    }
+
+    async function handleHomeBgUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      setCloudLoading(true);
+      customHomeBg = await compressImageFile(file, 900, 0.82);
+      applyCustomHomeBg(customHomeBg);
+      await syncConfigToCloud();
+      setCloudLoading(false);
+      showToast('已同步更新首頁底圖！');
+    }
+
+    function applyCustomHomeBg(dataUrl) {
+      const img = document.getElementById('customHomeBgImg');
+      const svg = document.getElementById('defaultHomeBgSvg');
+      if (dataUrl) {
+        img.src = dataUrl;
+        img.classList.remove('hidden');
+        svg.classList.add('hidden');
+      }
+    }
+
+    function openHomeConfigModal() {
+      const list = document.getElementById('homeEventRadioList');
+      list.innerHTML = '';
+      events.forEach(ev => {
+        const count = registrations.filter(r => r.eventId === ev.id).length;
+        const checked = (ev.id === homeFeaturedEventId) ? 'checked' : '';
+        const item = document.createElement('label');
+        item.className = 'flex items-center justify-between p-3 rounded-xl border border-stone-200 cursor-pointer hover:bg-stone-50 text-xs';
+        item.innerHTML = `
+          <div class="flex items-center gap-2">
+            <input type="radio" name="homeFeaturedEvt" value="${ev.id}" ${checked} onchange="selectHomeFeaturedEvent('${ev.id}')" />
+            <span class="font-bold text-stone-800">${ev.title}</span>
+          </div>
+          <span class="text-stone-500 font-medium">${count} 人報名</span>
+        `;
+        list.appendChild(item);
+      });
+      document.getElementById('modalHomeConfig').classList.remove('hidden');
+    }
+
+    async function selectHomeFeaturedEvent(id) {
+      homeFeaturedEventId = id;
+      setCloudLoading(true);
+      await syncConfigToCloud();
+      syncHomeBearsWithRegistrations();
+      setCloudLoading(false);
+      closeHomeConfigModal();
+      showToast('已同步切換首頁小熊連動活動！');
+    }
+
+    function closeHomeConfigModal() {
+      document.getElementById('modalHomeConfig').classList.add('hidden');
+    }
+
+    function openEventEditor(eventId) {
+      editingEventId = eventId;
+      const header = document.getElementById('editorHeaderTitle');
+      const preview = document.getElementById('editorBannerPreview');
+      const placeholder = document.getElementById('editorBannerPlaceholder');
+      const delWrap = document.getElementById('deleteEventWrap');
+
+      if (!eventId) {
+        header.innerText = '新增活動';
+        tempEditorBanner = '';
+        preview.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        document.getElementById('editStatus').value = 'open';
+        document.getElementById('editIsHomeFeatured').checked = false;
+        document.getElementById('editColorTheme').value = String(events.length % macaronThemes.length);
+        document.getElementById('editTitle').value = '';
+        document.getElementById('editDateShort').value = '';
+        document.getElementById('editDeadline').value = '';
+        document.getElementById('editTimeFull').value = '';
+        document.getElementById('editLocation').value = '';
+        document.getElementById('editPrice').value = 0;
+        document.getElementById('editFeeNote').value = '現場收費';
+        document.getElementById('editDesc').value = '';
+        delWrap.classList.add('hidden');
+      } else {
+        const ev = events.find(e => e.id === eventId);
+        if (!ev) return;
+        header.innerText = '編輯活動';
+        tempEditorBanner = ev.banner;
+        preview.src = ev.banner;
+        preview.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        document.getElementById('editStatus').value = ev.status;
+        document.getElementById('editIsHomeFeatured').checked = (ev.id === homeFeaturedEventId);
+        document.getElementById('editColorTheme').value = String(ev.colorIndex ?? 0);
+        document.getElementById('editTitle').value = ev.title;
+        document.getElementById('editDateShort').value = ev.dateShort;
+        document.getElementById('editDeadline').value = ev.deadline;
+        document.getElementById('editTimeFull').value = ev.timeFull;
+        document.getElementById('editLocation').value = ev.location;
+        document.getElementById('editPrice').value = ev.price;
+        document.getElementById('editFeeNote').value = ev.feeNote || '現場收費';
+        document.getElementById('editDesc').value = ev.desc;
+        delWrap.classList.toggle('hidden', events.length <= 1);
+      }
+
+      document.getElementById('modalEditor').classList.remove('hidden');
+    }
+
+    function closeEventEditor() {
+      document.getElementById('modalEditor').classList.add('hidden');
+    }
+
+    async function handleEditorBannerUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      tempEditorBanner = await compressImageFile(file, 1000, 0.82);
+      const preview = document.getElementById('editorBannerPreview');
+      preview.src = tempEditorBanner;
+      preview.classList.remove('hidden');
+      document.getElementById('editorBannerPlaceholder').classList.add('hidden');
+    }
+
+    async function saveEventFromEditor() {
+      const title = document.getElementById('editTitle').value.trim();
+      if (!title) {
+        showToast('請輸入活動名稱');
+        return;
+      }
+
+      const payload = {
+        id: editingEventId || ('evt_' + Date.now()),
+        title,
+        dateShort: document.getElementById('editDateShort').value.trim() || '日期待定',
+        deadline: document.getElementById('editDeadline').value.trim() || '額滿為止',
+        timeFull: document.getElementById('editTimeFull').value.trim() || '時間待定',
+        location: document.getElementById('editLocation').value.trim() || '地點待定',
+        price: Number(document.getElementById('editPrice').value) || 0,
+        feeNote: document.getElementById('editFeeNote').value.trim() || '現場收費',
+        status: document.getElementById('editStatus').value,
+        colorIndex: Number(document.getElementById('editColorTheme').value) || 0,
+        banner: tempEditorBanner || 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?auto=format&fit=crop&w=1000&q=80',
+        desc: document.getElementById('editDesc').value
+      };
+
+      setCloudLoading(true);
+      if (editingEventId) {
+        const idx = events.findIndex(e => e.id === editingEventId);
+        if (idx > -1) events[idx] = payload;
+      } else {
+        events.unshift(payload);
+        currentEventId = payload.id;
+      }
+
+      if (document.getElementById('editIsHomeFeatured').checked) {
+        homeFeaturedEventId = payload.id;
+      }
+
+      if (supabaseClient) {
+        await supabaseClient.from('events').upsert({
+          id: payload.id,
+          title: payload.title,
+          date_short: payload.dateShort,
+          time_full: payload.timeFull,
+          deadline: payload.deadline,
+          location: payload.location,
+          price: payload.price,
+          fee_note: payload.feeNote,
+          status: payload.status,
+          color_index: payload.colorIndex,
+          banner: payload.banner,
+          description: payload.desc
+        });
+      }
+      await syncConfigToCloud();
+      setCloudLoading(false);
+
+      closeEventEditor();
+      renderEventList();
+      renderEventDetail(currentEventId);
+      showToast('已同步發布活動設定！');
+    }
+
+    async function deleteCurrentEvent() {
+      if (!editingEventId || events.length <= 1) return;
+      setCloudLoading(true);
+      const delId = editingEventId;
+      events = events.filter(e => e.id !== delId);
+      if (homeFeaturedEventId === delId) {
+        homeFeaturedEventId = events[0].id;
+      }
+      currentEventId = events[0].id;
+
+      if (supabaseClient) {
+        await supabaseClient.from('events').delete().eq('id', delId);
+      }
+      await syncConfigToCloud();
+      setCloudLoading(false);
+
+      closeEventEditor();
+      switchView('list');
+      showToast('已刪除活動');
+    }
+
+    function openAttendeeModal() {
+      const ev = events.find(e => e.id === currentEventId);
+      const list = registrations.filter(r => r.eventId === currentEventId);
+      document.getElementById('attendeeModalSubtitle').innerText = `${ev ? ev.title : ''}｜共 ${list.length} 人報名`;
+
+      const container = document.getElementById('attendeeListContainer');
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-xs text-stone-400">尚無報名資料</div>`;
+      } else {
+        list.slice().reverse().forEach((r) => {
+          const cObj = gummyPalette.find(c => c.id === r.bearColor) || gummyPalette[0];
+          const item = document.createElement('div');
+          item.className = 'p-3.5 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-between text-xs';
+          item.innerHTML = `
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-black text-stone-900 text-sm">${r.name}</span>
+                ${r.school ? `<span class="text-stone-500">(${r.school})</span>` : ''}
+                ${r.isNew
+                  ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded-md text-[10px]">新朋友・免費</span>`
+                  : `<span class="px-2 py-0.5 bg-stone-200 text-stone-600 font-bold rounded-md text-[10px]">舊朋友</span>`
+                }
+              </div>
+              <div class="text-stone-500">邀請人：<strong class="text-stone-700">${r.inviter}</strong> · 小熊(${cObj.name})：「<strong class="text-pink-600">${r.bearWords || '好玩~'}</strong>」</div>
+              <div class="text-[11px] text-stone-400">${r.time}</div>
+            </div>
+            <button onclick="deleteAttendee('${r.id}')" class="text-stone-300 hover:text-rose-500 p-1">✕</button>
+          `;
+          container.appendChild(item);
+        });
+      }
+      document.getElementById('modalAttendees').classList.remove('hidden');
+    }
+
+    function closeAttendeeModal() {
+      document.getElementById('modalAttendees').classList.add('hidden');
+    }
+
+    async function deleteAttendee(regId) {
+      setCloudLoading(true);
+      registrations = registrations.filter(r => r.id !== regId);
+      saveLocalBackup();
+      if (supabaseClient) {
+        await supabaseClient.from('registrations').delete().eq('id', regId);
+      }
+      setCloudLoading(false);
+      openAttendeeModal();
+      renderEventDetail(currentEventId);
+    }
+
+    function exportAttendeesCSV() {
+      const ev = events.find(e => e.id === currentEventId);
+      const list = registrations.filter(r => r.eventId === currentEventId);
+      if (list.length === 0) {
+        showToast('目前無名單可匯出');
+        return;
+      }
+      let csv = '\uFEFF姓名,學校,邀請人,身分,小熊顏色,小熊台詞,報名時間\n';
+      list.forEach(r => {
+        const cObj = gummyPalette.find(c => c.id === r.bearColor) || gummyPalette[0];
+        csv += `"${r.name}","${r.school || ''}","${r.inviter}","${r.isNew ? '新朋友(免費)' : '舊朋友'}","${cObj.name}","${r.bearWords || '好玩~'}","${r.time}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${ev ? ev.title : '活動'}_報名名單.csv`;
+      a.click();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastMsg');
+      t.innerText = msg;
+      t.classList.remove('opacity-0');
+      t.classList.add('opacity-100');
+      setTimeout(() => {
+        t.classList.remove('opacity-100');
+        t.classList.add('opacity-0');
+      }, 2200);
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (customHomeBg) applyCustomHomeBg(customHomeBg);
+      document.getElementById('fellowshipBannerImg').src = fellowshipBanner;
+      syncHomeBearsWithRegistrations();
+      updateAdminUI();
+      requestAnimationFrame(updateBearsLoop);
+
+      await loadFromCloud();
+
+      if (supabaseClient) {
+        supabaseClient
+          .channel('public:registrations')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registrations' }, (payload) => {
+            const r = payload.new;
+            if (!registrations.some(x => x.id === r.id)) {
+              registrations.push({
+                id: r.id,
+                eventId: r.event_id,
+                name: r.name,
+                school: r.school,
+                inviter: r.inviter,
+                isNew: r.is_new,
+                bearColor: r.bear_color || 'ruby',
+                bearWords: r.bear_words || '好玩~',
+                time: r.reg_time
+              });
+              if (r.event_id === homeFeaturedEventId) {
+                document.getElementById('homeRegCountNum').innerText = getFeaturedEventRegs().length;
+                createBearEntity(true, r.bear_color, r.bear_words);
+              }
+            }
+          })
+          .subscribe();
+      }
+    });
+  </script>
+</body>
+</html>
