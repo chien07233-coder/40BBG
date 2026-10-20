@@ -6,7 +6,6 @@
   <title>活動報名平台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- 引入 Supabase 官方 SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
@@ -15,7 +14,7 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    input, textarea { user-select: text; }
+    input, textarea, select { user-select: text; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -139,31 +138,10 @@
             <path d="M22,26 Q48,-22 74,26" fill="none" stroke="#cfa779" stroke-width="7" stroke-linecap="round"/>
             <path d="M22,26 Q48,-22 74,26" fill="none" stroke="#9c754d" stroke-width="1.3"/>
           </g>
-          <g transform="translate(105, 738)">
-            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
-          </g>
-          <g transform="translate(138, 792) scale(0.75)">
-            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
-          </g>
-          <g transform="translate(345, 785) scale(0.95)">
-            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
-          </g>
-          <g transform="translate(398, 825) scale(0.9)">
-            <circle cx="0" cy="-5" r="4.5" fill="#fff"/><circle cx="5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="5" r="4.5" fill="#fff"/><circle cx="-5" cy="0" r="4.5" fill="#fff"/>
-            <circle cx="0" cy="0" r="3" fill="#f3b644"/>
-          </g>
         </svg>
         <img id="customHomeBgImg" class="hidden w-full h-full object-cover" alt="首頁自訂底圖" />
       </div>
 
-      <!-- 頂部狀態列 -->
       <div class="relative z-30 pt-5 px-5 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <label id="adminHomeBgBtn" class="hidden glass-pill glass-pill-btn px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer flex items-center gap-1.5 transition">
@@ -181,15 +159,14 @@
         </div>
       </div>
 
-      <!-- 自由漫步的小熊軟糖互動舞台 -->
       <div id="bearStage" class="relative z-20 flex-1 w-full h-full overflow-hidden"></div>
 
-      <!-- 首頁底部按鈕 -->
-      <div class="relative z-30 pb-12 px-6 flex items-center justify-center gap-3.5">
+      <!-- 首頁底部按鈕 (往上一點，右邊按鈕點擊時同時複製指定網址並跑出小熊) -->
+      <div class="relative z-30 pb-20 px-6 flex items-center justify-center gap-3.5">
         <button onclick="switchView('list')" class="glass-pill glass-pill-btn px-6 py-3 rounded-full text-sm font-bold tracking-wide flex items-center gap-2 transition">
           <span>📋 活動列表</span>
         </button>
-        <button onclick="spawnOneBearFromEdge()" class="glass-pill glass-pill-btn px-6 py-3 rounded-full text-sm font-bold tracking-wide flex items-center gap-2 transition">
+        <button onclick="shareLinkAndSpawnBear()" class="glass-pill glass-pill-btn px-6 py-3 rounded-full text-sm font-bold tracking-wide flex items-center gap-2 transition">
           <span>🧸 揪好友一起來</span>
         </button>
       </div>
@@ -225,7 +202,6 @@
       </div>
 
       <div class="flex-1 overflow-y-auto no-scrollbar pb-8">
-        <!-- 整個團契的主視覺大圖 -->
         <div class="px-4 pt-4 pb-1">
           <div class="relative w-full aspect-video rounded-3xl overflow-hidden bg-stone-200 shadow-md border-4 border-white">
             <img id="fellowshipBannerImg" src="" alt="團契主視覺" class="w-full h-full object-cover" />
@@ -279,7 +255,7 @@
       <div class="flex-1 overflow-y-auto no-scrollbar p-4 pb-32 space-y-4">
         <div class="cute-form-card p-2 rounded-[28px] overflow-hidden">
           <div class="relative w-full aspect-video rounded-[20px] bg-stone-900 overflow-hidden flex items-center justify-center">
-            <img id="detailBannerImg" src="" alt="活動主視覺" class="w-full h-full object-contain" />
+            <img id="detailBannerImg" src="" alt="活動主視覺" class="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -299,9 +275,12 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-start gap-3">
             <span class="w-7 h-7 rounded-xl bg-white/80 flex items-center justify-center shadow-sm shrink-0 text-sm">📍</span>
-            <div class="text-stone-800 font-black" id="detailLocation"></div>
+            <div class="flex-1 min-w-0">
+              <div class="text-stone-800 font-black" id="detailLocationName"></div>
+              <div class="text-xs text-stone-500 font-bold mt-0.5" id="detailLocationAddr"></div>
+            </div>
           </div>
 
           <div class="flex items-center gap-3">
@@ -468,7 +447,7 @@
 
         <div class="flex-1 overflow-y-auto no-scrollbar pb-10">
           <label class="relative block w-full aspect-video bg-stone-100 border-b border-stone-200 cursor-pointer overflow-hidden group">
-            <img id="editorBannerPreview" class="hidden w-full h-full object-contain bg-stone-900" />
+            <img id="editorBannerPreview" class="hidden w-full h-full object-cover bg-stone-900" />
             <div id="editorBannerPlaceholder" class="w-full h-full flex flex-col items-center justify-center text-stone-400 space-y-1">
               <span class="text-2xl">📷</span>
               <span class="text-xs font-bold">點擊上傳 16:9 活動主視覺</span>
@@ -483,6 +462,7 @@
                 <label class="font-bold text-stone-600 block mb-1">報名狀態</label>
                 <select id="editStatus" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800">
                   <option value="open">報名中</option>
+                  <option value="full">已滿額</option>
                   <option value="closed">報名截止</option>
                   <option value="ended">已結束</option>
                 </select>
@@ -495,16 +475,29 @@
               </div>
             </div>
 
-            <div>
-              <label class="font-bold text-stone-600 block mb-1">馬卡龍卡片色系</label>
-              <select id="editColorTheme" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800">
-                <option value="0">🌸 蜜桃粉 (Pink)</option>
-                <option value="1">🌿 薄荷綠 (Mint)</option>
-                <option value="2">🍋 奶油黃 (Butter)</option>
-                <option value="3">💜 薰衣草紫 (Lavender)</option>
-                <option value="4">☁️ 蘇打藍 (Sky)</option>
-                <option value="5">🍑 杏桃橘 (Peach)</option>
-              </select>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">卡片色系 (13色)</label>
+                <select id="editColorTheme" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800">
+                  <option value="0">🌸 蜜桃粉</option>
+                  <option value="1">🌿 薄荷綠</option>
+                  <option value="2">🍋 奶油黃</option>
+                  <option value="3">💜 薰衣草紫</option>
+                  <option value="4">☁️ 蘇打藍</option>
+                  <option value="5">🍑 杏桃橘</option>
+                  <option value="6">🖤 質感黑</option>
+                  <option value="7">🤍 純淨白</option>
+                  <option value="8">🩶 時尚灰</option>
+                  <option value="9">🌹 玫瑰紅</option>
+                  <option value="10">🌊 靛青藍</option>
+                  <option value="11">🥝 奇異綠</option>
+                  <option value="12">🍫 可可棕</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">後台報名人數上限</label>
+                <input id="editCapacity" type="number" min="0" placeholder="0代表無限制" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800" />
+              </div>
             </div>
 
             <div>
@@ -515,22 +508,35 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="font-bold text-stone-600 block mb-1">列表顯示日期 *</label>
-                <input id="editDateShort" type="text" placeholder="2026/10/22 (四)" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+                <input id="editDateShort" type="date" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 font-bold" />
               </div>
               <div>
-                <label class="font-bold text-rose-600 block mb-1">報名截止日期 *</label>
-                <input id="editDeadline" type="text" placeholder="2026/10/20 23:59" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+                <label class="font-bold text-rose-600 block mb-1">報名截止時間 *</label>
+                <input id="editDeadline" type="datetime-local" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 font-bold" />
               </div>
             </div>
 
-            <div>
-              <label class="font-bold text-stone-600 block mb-1">完整活動時間 *</label>
-              <input id="editTimeFull" type="text" placeholder="2026/10/22 週四 19:00 - 21:00" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+            <!-- 完整活動時間：選取開始時間到結束時間 -->
+            <div class="grid grid-cols-2 gap-3 bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100">
+              <div>
+                <label class="font-bold text-indigo-900 block mb-1">活動開始時間 *</label>
+                <input id="editTimeStart" type="datetime-local" class="w-full p-2.5 bg-white border border-stone-200 rounded-xl text-stone-800 font-bold text-xs" />
+              </div>
+              <div>
+                <label class="font-bold text-indigo-900 block mb-1">活動結束時間 *</label>
+                <input id="editTimeEnd" type="datetime-local" class="w-full p-2.5 bg-white border border-stone-200 rounded-xl text-stone-800 font-bold text-xs" />
+              </div>
             </div>
 
-            <div>
-              <label class="font-bold text-stone-600 block mb-1">活動地點 (只顯示一行) *</label>
-              <input id="editLocation" type="text" placeholder="臺北市大安森林公園" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">活動地點名稱 *</label>
+                <input id="editLocationName" type="text" placeholder="例如：大安森林公園" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+              </div>
+              <div>
+                <label class="font-bold text-stone-600 block mb-1">詳細地址 *</label>
+                <input id="editLocationAddr" type="text" placeholder="例如：臺北市大安區..." class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -539,8 +545,15 @@
                 <input id="editPrice" type="number" min="0" placeholder="100" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800" />
               </div>
               <div>
-                <label class="font-bold text-stone-600 block mb-1">收費方式說明</label>
-                <input id="editFeeNote" type="text" placeholder="現場收費" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
+                <label class="font-bold text-stone-600 block mb-1">收費方式</label>
+                <select id="editFeeTypeSelect" onchange="handleFeeTypeChange(this)" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800 mb-1">
+                  <option value="現場收費">現場收費</option>
+                  <option value="電子支付">電子支付</option>
+                  <option value="匯款">匯款</option>
+                  <option value="免費/無">免費/無</option>
+                  <option value="custom">自訂輸入...</option>
+                </select>
+                <input id="editFeeNoteCustom" type="text" placeholder="手動輸入收費說明" class="hidden w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800" />
               </div>
             </div>
 
@@ -590,9 +603,6 @@
   </div>
 
   <script>
-    /**************************************************************
-     * ★ 已自動填入您的 Supabase 專案網址與金鑰 ★
-     **************************************************************/
     const SUPABASE_URL = 'https://hivmlpnrhuafsdxbtifh.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_cHXUpha2w9ML3kwsL9mohg_qbE8tc5I';
 
@@ -630,11 +640,11 @@
       document.getElementById('cloudLoadingOverlay').classList.toggle('hidden', !show);
     }
 
-    const STORAGE_KEY_EVENTS = 'picnic_platform_events_v5';
-    const STORAGE_KEY_REGS   = 'picnic_platform_regs_v5';
-    const STORAGE_KEY_HOME_EVENT = 'picnic_platform_home_event_v5';
-    const STORAGE_KEY_HOME_BG    = 'picnic_platform_home_bg_v5';
-    const STORAGE_KEY_FELLOWSHIP_BANNER = 'picnic_platform_fellowship_banner_v5';
+    const STORAGE_KEY_EVENTS = 'picnic_platform_events_v7';
+    const STORAGE_KEY_REGS   = 'picnic_platform_regs_v7';
+    const STORAGE_KEY_HOME_EVENT = 'picnic_platform_home_event_v7';
+    const STORAGE_KEY_HOME_BG    = 'picnic_platform_home_bg_v7';
+    const STORAGE_KEY_FELLOWSHIP_BANNER = 'picnic_platform_fellowship_banner_v7';
 
     const macaronThemes = [
       { cardBg: 'bg-[#FFF0F5]', cardBorder: 'border-[#FBCFE8]', badgeBg: 'bg-[#F472B6]', badgeText: 'text-white', softBadgeBg: 'bg-[#FCE7F3]', softBadgeText: 'text-[#9D174D]', titleText: 'text-[#831843]', subText: 'text-[#9D174D]/75', arrowText: 'text-[#F472B6]' },
@@ -642,7 +652,14 @@
       { cardBg: 'bg-[#FEFCE8]', cardBorder: 'border-[#FDE047]', badgeBg: 'bg-[#FACC15]', badgeText: 'text-[#713F12]', softBadgeBg: 'bg-[#FEF9C3]', softBadgeText: 'text-[#854D0E]', titleText: 'text-[#713F12]', subText: 'text-[#854D0E]/80', arrowText: 'text-[#EAB308]' },
       { cardBg: 'bg-[#F5F3FF]', cardBorder: 'border-[#DDD6FE]', badgeBg: 'bg-[#A78BFA]', badgeText: 'text-white', softBadgeBg: 'bg-[#EDE9FE]', softBadgeText: 'text-[#5B21B6]', titleText: 'text-[#4C1D95]', subText: 'text-[#5B21B6]/75', arrowText: 'text-[#A78BFA]' },
       { cardBg: 'bg-[#F0F9FF]', cardBorder: 'border-[#BAE6FD]', badgeBg: 'bg-[#38BDF8]', badgeText: 'text-white', softBadgeBg: 'bg-[#E0F2FE]', softBadgeText: 'text-[#075985]', titleText: 'text-[#0C4A6E]', subText: 'text-[#075985]/75', arrowText: 'text-[#38BDF8]' },
-      { cardBg: 'bg-[#FFF7ED]', cardBorder: 'border-[#FED7AA]', badgeBg: 'bg-[#FB923C]', badgeText: 'text-white', softBadgeBg: 'bg-[#FFEDD5]', softBadgeText: 'text-[#9A3412]', titleText: 'text-[#7C2D12]', subText: 'text-[#9A3412]/75', arrowText: 'text-[#FB923C]' }
+      { cardBg: 'bg-[#FFF7ED]', cardBorder: 'border-[#FED7AA]', badgeBg: 'bg-[#FB923C]', badgeText: 'text-white', softBadgeBg: 'bg-[#FFEDD5]', softBadgeText: 'text-[#9A3412]', titleText: 'text-[#7C2D12]', subText: 'text-[#9A3412]/75', arrowText: 'text-[#FB923C]' },
+      { cardBg: 'bg-[#1C1917]', cardBorder: 'border-[#44403C]', badgeBg: 'bg-[#FAFAF9]', badgeText: 'text-[#1C1917]', softBadgeBg: 'bg-[#292524]', softBadgeText: 'text-[#FAFAF9]', titleText: 'text-[#FAFAF9]', subText: 'text-[#A8A29E]', arrowText: 'text-[#A8A29E]' },
+      { cardBg: 'bg-[#FFFFFF]', cardBorder: 'border-[#E7E5E4]', badgeBg: 'bg-[#292524]', badgeText: 'text-white', softBadgeBg: 'bg-[#F5F5F4]', softBadgeText: 'text-[#292524]', titleText: 'text-[#1C1917]', subText: 'text-[#78716C]', arrowText: 'text-[#292524]' },
+      { cardBg: 'bg-[#F4F4F5]', cardBorder: 'border-[#D4D4D8]', badgeBg: 'bg-[#71717A]', badgeText: 'text-white', softBadgeBg: 'bg-[#E4E4E7]', softBadgeText: 'text-[#27272A]', titleText: 'text-[#27272A]', subText: 'text-[#52525B]', arrowText: 'text-[#71717A]' },
+      { cardBg: 'bg-[#FFF1F2]', cardBorder: 'border-[#FECDD3]', badgeBg: 'bg-[#FB7185]', badgeText: 'text-white', softBadgeBg: 'bg-[#FFE4E6]', softBadgeText: 'text-[#9F1239]', titleText: 'text-[#881337]', subText: 'text-[#9F1239]', arrowText: 'text-[#FB7185]' },
+      { cardBg: 'bg-[#EFF6FF]', cardBorder: 'border-[#BFDBFE]', badgeBg: 'bg-[#60A5FA]', badgeText: 'text-white', softBadgeBg: 'bg-[#DBEAFE]', softBadgeText: 'text-[#1E40AF]', titleText: 'text-[#1E3A8A]', subText: 'text-[#1E40AF]', arrowText: 'text-[#60A5FA]' },
+      { cardBg: 'bg-[#F7FEE7]', cardBorder: 'border-[#D9F99D]', badgeBg: 'bg-[#84CC16]', badgeText: 'text-white', softBadgeBg: 'bg-[#ECFCCB]', softBadgeText: 'text-[#3F6212]', titleText: 'text-[#365314]', subText: 'text-[#3F6212]', arrowText: 'text-[#84CC16]' },
+      { cardBg: 'bg-[#FDF4EE]', cardBorder: 'border-[#F5D0B1]', badgeBg: 'bg-[#D97706]', badgeText: 'text-white', softBadgeBg: 'bg-[#FDE68A]', softBadgeText: 'text-[#78350F]', titleText: 'text-[#451A03]', subText: 'text-[#78350F]', arrowText: 'text-[#D97706]' }
     ];
 
     const defaultFellowshipBanner = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
@@ -668,13 +685,16 @@
       {
         id: 'evt_1',
         title: '北北基野餐日',
-        dateShort: '2026/10/22 (四)',
-        timeFull: '2026/10/22 週四 19:00 - 21:00',
-        deadline: '2026/10/21 23:59',
-        location: '臺北市大安森林公園',
+        dateShort: '2026-10-22',
+        timeStart: '2026-10-22T19:00',
+        timeEnd: '2026-10-22T21:00',
+        deadline: '2026-10-21T23:59',
+        locationName: '大安森林公園',
+        locationAddr: '臺北市大安區新生南路二段1號',
         price: 100,
         feeNote: '現場收費',
         status: 'open',
+        capacity: 50,
         colorIndex: 0,
         banner: 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?auto=format&fit=crop&w=1000&q=80',
         desc: '開心暢聊的夜晚\n配上熱狗炸雞一起開趴啦🎉🎉🎉\n歡迎大家一起報名參加！'
@@ -718,24 +738,20 @@
             id: r.id,
             title: r.title,
             dateShort: r.date_short,
-            timeFull: r.time_full,
+            timeStart: r.time_start || r.time_full || '',
+            timeEnd: r.time_end || '',
             deadline: r.deadline,
-            location: r.location,
+            locationName: r.location_name || r.location || '',
+            locationAddr: r.location_addr || '',
             price: Number(r.price) || 0,
             feeNote: r.fee_note,
             status: r.status,
+            capacity: Number(r.capacity) || 0,
             colorIndex: Number(r.color_index) || 0,
             banner: r.banner,
             desc: r.description
           }));
           currentEventId = events[0].id;
-        } else {
-          const e0 = defaultEvents[0];
-          await supabaseClient.from('events').upsert({
-            id: e0.id, title: e0.title, date_short: e0.dateShort, time_full: e0.timeFull,
-            deadline: e0.deadline, location: e0.location, price: e0.price, fee_note: e0.feeNote,
-            status: e0.status, color_index: e0.colorIndex, banner: e0.banner, description: e0.desc
-          });
         }
 
         if (regRes.data) {
@@ -759,13 +775,6 @@
             customHomeBg = cfgRes.data.home_bg;
             applyCustomHomeBg(customHomeBg);
           }
-        } else {
-          await supabaseClient.from('app_config').upsert({
-            id: 'main',
-            home_featured_event_id: homeFeaturedEventId,
-            fellowship_banner: fellowshipBanner,
-            home_bg: customHomeBg
-          });
         }
 
         saveLocalBackup();
@@ -815,21 +824,7 @@
             </radialGradient>
           </defs>
           <ellipse cx="60" cy="148" rx="34" ry="8" fill="rgba(25, 50, 15, 0.25)"/>
-          <path d="M 32,18
-                   C 16,12 12,32 24,42
-                   C 18,52 19,65 26,72
-                   C 12,78 10,98 25,104
-                   C 21,114 14,132 26,142
-                   C 36,148 48,143 51,134
-                   C 56,135 64,135 69,134
-                   C 72,143 84,148 94,142
-                   C 106,132 99,114 95,104
-                   C 110,98 108,78 94,72
-                   C 101,65 102,52 96,42
-                   C 108,32 104,12 88,18
-                   C 76,12 44,12 32,18 Z"
-                fill="url(#bodyGrad_${uid})"
-                stroke="${c.light}" stroke-opacity="0.55" stroke-width="1.5" />
+          <path d="M 32,18 C 16,12 12,32 24,42 C 18,52 19,65 26,72 C 12,78 10,98 25,104 C 21,114 14,132 26,142 C 36,148 48,143 51,134 C 56,135 64,135 69,134 C 72,143 84,148 94,142 C 106,132 99,114 95,104 C 110,98 108,78 94,72 C 101,65 102,52 96,42 C 108,32 104,12 88,18 C 76,12 44,12 32,18 Z" fill="url(#bodyGrad_${uid})" stroke="${c.light}" stroke-opacity="0.55" stroke-width="1.5" />
           <ellipse cx="60" cy="95" rx="28" ry="34" fill="url(#subGlow_${uid})" />
           <ellipse cx="60" cy="46" rx="26" ry="22" fill="url(#subGlow_${uid})" />
           <circle cx="28" cy="27" r="7" fill="${c.dark}" opacity="0.28"/>
@@ -869,10 +864,7 @@
     }
 
     function randomGrassPoint() {
-      return {
-        x: 15 + Math.random() * 70,
-        y: 44 + Math.random() * 34
-      };
+      return { x: 15 + Math.random() * 70, y: 44 + Math.random() * 34 };
     }
 
     function createBearEntity(startFromEdge = false, customColorId = null, customWords = null) {
@@ -960,6 +952,35 @@
       regList.forEach(reg => {
         createBearEntity(false, reg.bearColor, reg.bearWords);
       });
+    }
+
+    // 點擊「揪好友一起來」按鈕：跑出小熊 + 自動複製 https://reurl.cc/YmrAka
+    function shareLinkAndSpawnBear() {
+      const targetUrl = 'https://reurl.cc/YmrAka';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(targetUrl).then(() => {
+          showToast('🔗 已複製活動連結 (https://reurl.cc/YmrAka)！');
+        }).catch(() => {
+          fallbackCopyText(targetUrl);
+        });
+      } else {
+        fallbackCopyText(targetUrl);
+      }
+      spawnOneBearFromEdge();
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('🔗 已複製活動連結 (https://reurl.cc/YmrAka)！');
+      } catch (e) {
+        showToast('🔗 活動連結：https://reurl.cc/YmrAka');
+      }
+      document.body.removeChild(ta);
     }
 
     function spawnOneBearFromEdge() {
@@ -1054,7 +1075,7 @@
       activeContainer.innerHTML = '';
       endedContainer.innerHTML = '';
 
-      const activeList = events.filter(e => e.status === 'open' || e.status === 'closed');
+      const activeList = events.filter(e => e.status !== 'ended');
       const endedList  = events.filter(e => e.status === 'ended');
 
       if (activeList.length === 0) {
@@ -1094,6 +1115,8 @@
       let badgeHTML = '';
       if (ev.status === 'open') {
         badgeHTML = `<span class="px-2.5 py-0.5 text-[11px] font-black ${theme.badgeBg} ${theme.badgeText} rounded-full shadow-sm">報名中</span>`;
+      } else if (ev.status === 'full') {
+        badgeHTML = `<span class="px-2.5 py-0.5 text-[11px] font-black bg-rose-500 text-white rounded-full">已滿額</span>`;
       } else if (ev.status === 'closed') {
         badgeHTML = `<span class="px-2.5 py-0.5 text-[11px] font-black bg-amber-400 text-amber-950 rounded-full">報名截止</span>`;
       } else {
@@ -1146,9 +1169,14 @@
 
       document.getElementById('detailBannerImg').src = ev.banner;
       document.getElementById('detailTitle').innerText = ev.title;
-      document.getElementById('detailTime').innerText = ev.timeFull;
-      document.getElementById('detailDeadline').innerText = ev.deadline;
-      document.getElementById('detailLocation').innerText = ev.location;
+      
+      // 格式化顯示開始到結束時間
+      const startStr = ev.timeStart ? ev.timeStart.replace('T', ' ') : '';
+      const endStr = ev.timeEnd ? ev.timeEnd.replace('T', ' ').slice(11) : '';
+      document.getElementById('detailTime').innerText = endStr ? `${startStr} ~ ${endStr}` : startStr;
+      document.getElementById('detailDeadline').innerText = ev.deadline ? ev.deadline.replace('T', ' ') : '';
+      document.getElementById('detailLocationName').innerText = ev.locationName || '地點待定';
+      document.getElementById('detailLocationAddr').innerText = ev.locationAddr || '';
       document.getElementById('detailFeeNote').innerText = ev.feeNote || '現場收費';
       document.getElementById('detailDesc').innerText = ev.desc;
 
@@ -1160,18 +1188,26 @@
 
       const badge = document.getElementById('detailStatusBadge');
       const regBtn = document.getElementById('detailRegBtn');
-      if (ev.status === 'open') {
+      const currentRegCount = registrations.filter(r => r.eventId === ev.id).length;
+      const isFull = (ev.status === 'full') || (ev.capacity && currentRegCount >= ev.capacity);
+
+      if (ev.status === 'open' && !isFull) {
         badge.className = `px-3.5 py-1 rounded-full text-xs font-black ${theme.badgeBg} ${theme.badgeText} shadow-sm`;
-        badge.innerText = '開放報名';
+        badge.innerText = `開放報名 (${currentRegCount}/${ev.capacity || '∞'})`;
         regBtn.disabled = false;
         regBtn.innerText = '立即報名';
+      } else if (isFull) {
+        badge.className = `px-3.5 py-1 rounded-full text-xs font-black bg-rose-500 text-white shadow-sm`;
+        badge.innerText = `已滿額 (${currentRegCount}/${ev.capacity})`;
+        regBtn.disabled = true;
+        regBtn.innerText = '名額已滿';
       } else if (ev.status === 'closed') {
-        badge.className = 'px-3.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-700';
+        badge.className = `px-3.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-700`;
         badge.innerText = '報名截止';
         regBtn.disabled = true;
         regBtn.innerText = '報名已截止';
       } else {
-        badge.className = 'px-3.5 py-1 rounded-full text-xs font-bold bg-stone-200 text-stone-600';
+        badge.className = `px-3.5 py-1 rounded-full text-xs font-bold bg-stone-200 text-stone-600`;
         badge.innerText = '已結束';
         regBtn.disabled = true;
         regBtn.innerText = '活動已結束';
@@ -1198,9 +1234,7 @@
         };
 
         btn.className = `flex flex-col items-center justify-center p-1.5 rounded-2xl border-2 transition transform ${
-          isSelected
-            ? `${c.ring} scale-105 shadow-sm`
-            : 'border-stone-100 bg-stone-50/70 text-stone-400 hover:bg-stone-100/70'
+          isSelected ? `${c.ring} scale-105 shadow-sm` : 'border-stone-100 bg-stone-50/70 text-stone-400 hover:bg-stone-100/70'
         }`;
 
         btn.innerHTML = `
@@ -1233,7 +1267,7 @@
       headerCard.className = `p-3.5 rounded-3xl border-2 flex items-center gap-3.5 shadow-sm ${theme.cardBg} ${theme.cardBorder}`;
       document.getElementById('regEventThumb').src = ev.banner;
       document.getElementById('regEventTitle').innerText = ev.title;
-      document.getElementById('regEventDate').innerText = ev.timeFull;
+      document.getElementById('regEventDate').innerText = ev.timeStart ? ev.timeStart.replace('T', ' ') : '';
 
       switchView('reg');
     }
@@ -1264,12 +1298,18 @@
         return;
       }
 
+      const ev = events.find(x => x.id === currentEventId);
+      const currentRegCount = registrations.filter(r => r.eventId === ev.id).length;
+      if (ev.capacity && currentRegCount >= ev.capacity) {
+        showToast('很抱歉，此活動已經額滿囉！');
+        return;
+      }
+
       const name = document.getElementById('inputName').value.trim();
       const school = document.getElementById('inputSchool').value.trim();
       const inviter = document.getElementById('inputInviter').value.trim();
       const bearWords = (document.getElementById('inputBearWords').value.trim() || '好玩~').slice(0, 5);
       const isNew = (selectedFriendType === 'new');
-      const ev = events.find(x => x.id === currentEventId);
 
       const newReg = {
         id: 'reg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -1353,7 +1393,7 @@
         showToast('🔓 已解鎖管理者模式');
       } else {
         const box = document.getElementById('passwordBox');
-        document.getElementById('pwdErrorMsg').classList.add('hidden');
+        document.getElementById('pwdErrorMsg').classList.remove('hidden');
         box.classList.remove('shake');
         void box.offsetWidth;
         box.classList.add('shake');
@@ -1438,6 +1478,17 @@
       document.getElementById('modalHomeConfig').classList.add('hidden');
     }
 
+    function handleFeeTypeChange(selectEl) {
+      const customInput = document.getElementById('editFeeNoteCustom');
+      if (selectEl.value === 'custom') {
+        customInput.classList.remove('hidden');
+        customInput.focus();
+      } else {
+        customInput.classList.add('hidden');
+        customInput.value = selectEl.value;
+      }
+    }
+
     function openEventEditor(eventId) {
       editingEventId = eventId;
       const header = document.getElementById('editorHeaderTitle');
@@ -1453,13 +1504,17 @@
         document.getElementById('editStatus').value = 'open';
         document.getElementById('editIsHomeFeatured').checked = false;
         document.getElementById('editColorTheme').value = String(events.length % macaronThemes.length);
+        document.getElementById('editCapacity').value = '';
         document.getElementById('editTitle').value = '';
         document.getElementById('editDateShort').value = '';
         document.getElementById('editDeadline').value = '';
-        document.getElementById('editTimeFull').value = '';
-        document.getElementById('editLocation').value = '';
+        document.getElementById('editTimeStart').value = '';
+        document.getElementById('editTimeEnd').value = '';
+        document.getElementById('editLocationName').value = '';
+        document.getElementById('editLocationAddr').value = '';
         document.getElementById('editPrice').value = 0;
-        document.getElementById('editFeeNote').value = '現場收費';
+        document.getElementById('editFeeTypeSelect').value = '現場收費';
+        document.getElementById('editFeeNoteCustom').classList.add('hidden');
         document.getElementById('editDesc').value = '';
         delWrap.classList.add('hidden');
       } else {
@@ -1473,13 +1528,28 @@
         document.getElementById('editStatus').value = ev.status;
         document.getElementById('editIsHomeFeatured').checked = (ev.id === homeFeaturedEventId);
         document.getElementById('editColorTheme').value = String(ev.colorIndex ?? 0);
+        document.getElementById('editCapacity').value = ev.capacity || '';
         document.getElementById('editTitle').value = ev.title;
-        document.getElementById('editDateShort').value = ev.dateShort;
-        document.getElementById('editDeadline').value = ev.deadline;
-        document.getElementById('editTimeFull').value = ev.timeFull;
-        document.getElementById('editLocation').value = ev.location;
+        document.getElementById('editDateShort').value = ev.dateShort || '';
+        document.getElementById('editDeadline').value = ev.deadline || '';
+        document.getElementById('editTimeStart').value = ev.timeStart || '';
+        document.getElementById('editTimeEnd').value = ev.timeEnd || '';
+        document.getElementById('editLocationName').value = ev.locationName || '';
+        document.getElementById('editLocationAddr').value = ev.locationAddr || '';
         document.getElementById('editPrice').value = ev.price;
-        document.getElementById('editFeeNote').value = ev.feeNote || '現場收費';
+
+        const feeSelect = document.getElementById('editFeeTypeSelect');
+        const feeCustom = document.getElementById('editFeeNoteCustom');
+        const defaultFees = ['現場收費', '電子支付', '匯款', '免費/無'];
+        if (defaultFees.includes(ev.feeNote)) {
+          feeSelect.value = ev.feeNote;
+          feeCustom.classList.add('hidden');
+        } else {
+          feeSelect.value = 'custom';
+          feeCustom.classList.remove('hidden');
+          feeCustom.value = ev.feeNote || '';
+        }
+
         document.getElementById('editDesc').value = ev.desc;
         delWrap.classList.toggle('hidden', events.length <= 1);
       }
@@ -1508,16 +1578,22 @@
         return;
       }
 
+      const feeSelectVal = document.getElementById('editFeeTypeSelect').value;
+      const finalFeeNote = (feeSelectVal === 'custom') ? document.getElementById('editFeeNoteCustom').value.trim() : feeSelectVal;
+
       const payload = {
         id: editingEventId || ('evt_' + Date.now()),
         title,
-        dateShort: document.getElementById('editDateShort').value.trim() || '日期待定',
-        deadline: document.getElementById('editDeadline').value.trim() || '額滿為止',
-        timeFull: document.getElementById('editTimeFull').value.trim() || '時間待定',
-        location: document.getElementById('editLocation').value.trim() || '地點待定',
+        dateShort: document.getElementById('editDateShort').value,
+        deadline: document.getElementById('editDeadline').value,
+        timeStart: document.getElementById('editTimeStart').value,
+        timeEnd: document.getElementById('editTimeEnd').value,
+        locationName: document.getElementById('editLocationName').value.trim() || '地點待定',
+        locationAddr: document.getElementById('editLocationAddr').value.trim() || '',
         price: Number(document.getElementById('editPrice').value) || 0,
-        feeNote: document.getElementById('editFeeNote').value.trim() || '現場收費',
+        feeNote: finalFeeNote || '現場收費',
         status: document.getElementById('editStatus').value,
+        capacity: Number(document.getElementById('editCapacity').value) || 0,
         colorIndex: Number(document.getElementById('editColorTheme').value) || 0,
         banner: tempEditorBanner || 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?auto=format&fit=crop&w=1000&q=80',
         desc: document.getElementById('editDesc').value
@@ -1541,12 +1617,15 @@
           id: payload.id,
           title: payload.title,
           date_short: payload.dateShort,
-          time_full: payload.timeFull,
+          time_start: payload.timeStart,
+          time_end: payload.timeEnd,
           deadline: payload.deadline,
-          location: payload.location,
+          location_name: payload.locationName,
+          location_addr: payload.locationAddr,
           price: payload.price,
           fee_note: payload.feeNote,
           status: payload.status,
+          capacity: payload.capacity,
           color_index: payload.colorIndex,
           banner: payload.banner,
           description: payload.desc
